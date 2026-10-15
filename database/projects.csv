@@ -1,0 +1,9 @@
+﻿project_id,project_name,description,created_date,project_manager_id,lifecycle_status
+PRJ-001,Online Shopping,"Checkout, catalog, and account services",2024-04-01,USR-002,ACTIVE
+PRJ-002,Hospital Management,"Appointments, patient records, and billing",2024-05-01,USR-003,ACTIVE
+PRJ-003,Learning Portal,Course enrollment and assessments,2024-06-01,USR-004,ACTIVE
+PRJ-004,Inventory Hub,"Stock, warehouse, and supplier workflows",2024-07-01,USR-002,ACTIVE
+PRJ-005,Mobile Banking,"Transfers, cards, and transaction history",2024-08-01,USR-003,ACTIVE
+PRJ-006,Travel Booking,"Search, reservations, and itinerary management",2024-09-01,USR-004,ACTIVE
+PRJ-007,Customer Support Desk,"Tickets, notifications, and agent workspace",2024-10-01,USR-002,ACTIVE
+PRJ-008,Analytics Dashboard,"Reporting, exports, and visualization",2024-11-01,USR-003,ACTIVE

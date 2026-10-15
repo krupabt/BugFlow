@@ -1,0 +1,21 @@
+﻿user_id,display_name,email,role,active
+USR-001,Alex Morgan,alex.morgan@example.org,ADMIN,True
+USR-002,Jordan Lee,jordan.lee@example.org,PROJECT_MANAGER,True
+USR-003,Casey Patel,casey.patel@example.org,PROJECT_MANAGER,True
+USR-004,Taylor Kim,taylor.kim@example.org,PROJECT_MANAGER,True
+USR-005,Riley Chen,riley.chen@example.org,DEVELOPER,True
+USR-006,Avery Shah,avery.shah@example.org,DEVELOPER,True
+USR-007,Morgan Diaz,morgan.diaz@example.org,DEVELOPER,True
+USR-008,Quinn Park,quinn.park@example.org,DEVELOPER,True
+USR-009,Jamie Brown,jamie.brown@example.org,DEVELOPER,True
+USR-010,Drew Wilson,drew.wilson@example.org,DEVELOPER,True
+USR-011,Skyler Rao,skyler.rao@example.org,DEVELOPER,True
+USR-012,Cameron Singh,cameron.singh@example.org,DEVELOPER,True
+USR-013,Robin Khan,robin.khan@example.org,DEVELOPER,True
+USR-014,Sage Miller,sage.miller@example.org,DEVELOPER,True
+USR-015,Emerson Clark,emerson.clark@example.org,TESTER,True
+USR-016,Peyton Garcia,peyton.garcia@example.org,TESTER,True
+USR-017,Rowan Turner,rowan.turner@example.org,TESTER,True
+USR-018,Reese Nair,reese.nair@example.org,TESTER,True
+USR-019,Finley Young,finley.young@example.org,TESTER,True
+USR-020,Dakota Lopez,dakota.lopez@example.org,TESTER,True

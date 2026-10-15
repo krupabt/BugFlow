@@ -1,0 +1,6 @@
+﻿state_id,state_name,sequence,terminal
+ST-01,Open,1,False
+ST-02,In Progress,2,False
+ST-03,Testing,3,False
+ST-04,Resolved,4,True
+ST-05,Closed,5,True
