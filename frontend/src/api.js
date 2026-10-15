@@ -70,12 +70,7 @@ export const api = {
     }),
 
   // Dashboard
-  getDashboardStats: (role, userId) => {
-    const query = new URLSearchParams();
-    if (role) query.append('role', role);
-    if (userId) query.append('user_id', userId);
-    return request(`/dashboard/stats?${query.toString()}`);
-  },
+  getDashboardStats: () => request('/dashboard/stats'),
   getRecentActivity: () => request('/dashboard/recent-activity'),
 
   // Issues

@@ -4,10 +4,10 @@ import { Bug, Lock, Mail, AlertCircle, ArrowRight, ShieldCheck } from 'lucide-re
 import { useAuth } from '../context/AuthContext';
 
 const DEMO_PRESETS = [
-  { role: 'Admin', email: 'alex.morgan@example.org', name: 'Alex Morgan' },
-  { role: 'Project Manager', email: 'jordan.lee@example.org', name: 'Jordan Lee' },
-  { role: 'Developer', email: 'riley.chen@example.org', name: 'Riley Chen' },
-  { role: 'Tester', email: 'emerson.clark@example.org', name: 'Emerson Clark' },
+  { role: 'Admin', email: 'krupa@example.org', name: 'Krupa' },
+  { role: 'Project Manager', email: 'Arun@example.org', name: 'Arun' },
+  { role: 'Developer', email: 'Priya.Sharma@example.org', name: 'Priya Sharma' },
+  { role: 'Tester', email: 'Sunil.clark@example.org', name: 'Sunil' },
 ];
 
 export default function Login() {

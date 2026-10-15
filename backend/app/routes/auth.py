@@ -1,35 +1,36 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
+import sqlalchemy as sa
 from app.extensions import db
-from app.models.user import User
+from app.models.user import User, ROLE_INTERNAL_MAP
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/api/auth")
 
 @auth_bp.route("/register", methods=["POST"])
 def register():
     data = request.get_json(silent=True) or {}
-    name = (data.get("full_name") or data.get("name") or data.get("username") or "").strip()
-    email = data.get("email", "").strip().lower()
+    name = (data.get("full_name") or data.get("name") or data.get("display_name") or data.get("username") or "").strip()
+    raw_email = (data.get("email") or "").strip()
     password = data.get("password", "")
-    requested_role = (data.get("role") or "Developer").strip()
+    requested_role = (data.get("role") or "DEVELOPER").strip().upper().replace(" ", "_")
     
-    if not name or not email or not password:
+    if not name or not raw_email or not password:
         return jsonify({"error": "Full name, email, and password are required."}), 400
         
     # Enforce: No unrestricted public Admin registration
-    if requested_role == "Admin":
+    if requested_role in ["ADMIN", "ADMINISTRATOR"]:
         return jsonify({"error": "Admin accounts cannot be registered publicly. Please contact an existing Administrator."}), 403
         
-    valid_roles = ["Developer", "Tester", "Project Manager"]
-    role = requested_role if requested_role in valid_roles else "Developer"
+    valid_roles = ["DEVELOPER", "TESTER", "PROJECT_MANAGER"]
+    role = requested_role if requested_role in valid_roles else "DEVELOPER"
         
-    if User.query.filter(User.email.ilike(email)).first():
-        return jsonify({"error": f"An account with email '{email}' already exists."}), 409
+    # Case-insensitive check for duplicate emails
+    if User.query.filter(sa.func.lower(User.email) == raw_email.lower()).first():
+        return jsonify({"error": f"An account with email '{raw_email}' already exists."}), 409
         
-    # Generate unique user ID
+    # Generate unique user ID: USR-xxx
     user_count = User.query.count()
     new_id = f"USR-{user_count + 1:03d}"
-    # Verify uniqueness
     while db.session.get(User, new_id):
         user_count += 1
         new_id = f"USR-{user_count + 1:03d}"
@@ -37,7 +38,7 @@ def register():
     user = User(
         id=new_id,
         name=name,
-        email=email,
+        email=raw_email,
         role=role,
         active=True
     )
@@ -61,8 +62,11 @@ def login():
     if not identifier or not password:
         return jsonify({"error": "Email/username and password are required."}), 400
         
+    # Case-insensitive lookup by email, display name, or user_id
     user = User.query.filter(
-        (User.email.ilike(identifier)) | (User.name.ilike(identifier)) | (User.id == identifier)
+        (sa.func.lower(User.email) == identifier.lower()) |
+        (sa.func.lower(User.name) == identifier.lower()) |
+        (sa.func.lower(User.id) == identifier.lower())
     ).first()
     
     if not user or not user.check_password(password):

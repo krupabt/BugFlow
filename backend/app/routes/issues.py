@@ -226,6 +226,9 @@ def assign_issue(issue_id):
         
     ident = get_jwt_identity()
     requester = db.session.get(User, str(ident)) if ident else None
+    requester_role = (requester.role or "").strip().upper().replace(" ", "_") if (requester and requester.role) else ""
+    if requester_role not in ["ADMIN", "PROJECT_MANAGER"]:
+        return jsonify({"error": "Only Admins and Project Managers can assign issues."}), 403
     
     data = request.get_json(silent=True) or {}
     assigned_to = data.get("assigned_to")
@@ -268,7 +271,7 @@ def update_status(issue_id):
         
     ident = get_jwt_identity()
     user = db.session.get(User, str(ident)) if ident else None
-    user_role = user.role if user else "Admin"
+    user_role = (user.role or "").strip().upper().replace(" ", "_") if (user and user.role) else "ADMIN"
     
     data = request.get_json(silent=True) or {}
     new_status = data.get("status")
@@ -282,7 +285,7 @@ def update_status(issue_id):
     old_status = issue.status
     
     # Workflow transition authorization checks
-    if user_role == "Developer":
+    if user_role == "DEVELOPER":
         # Developers work on issues: Open -> In Progress, In Progress -> Testing, In Progress/Testing -> Resolved
         allowed_transitions = {
             "Open": ["In Progress"],
@@ -294,7 +297,7 @@ def update_status(issue_id):
         if new_status not in allowed_transitions.get(old_status, []):
             return jsonify({"error": f"Developers cannot transition an issue directly from '{old_status}' to '{new_status}'."}), 403
             
-    elif user_role == "Tester":
+    elif user_role == "TESTER":
         # Testers verify and test: Testing -> Resolved, Resolved -> Closed, or Reopen (Testing/Resolved/Closed -> In Progress / Open)
         allowed_transitions = {
             "Open": ["Testing"],
@@ -385,7 +388,8 @@ def add_comment(issue_id):
 def delete_issue(issue_id):
     ident = get_jwt_identity()
     user = db.session.get(User, str(ident)) if ident else None
-    if not user or user.role not in ["Admin", "Project Manager"]:
+    role_raw = (user.role or "").strip().upper().replace(" ", "_") if (user and user.role) else ""
+    if role_raw not in ["ADMIN", "PROJECT_MANAGER"]:
         return jsonify({"error": "Only Administrators and Project Managers are authorized to delete issues."}), 403
 
     issue = db.session.get(Issue, issue_id)

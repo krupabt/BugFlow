@@ -37,32 +37,32 @@ class BugFlowComprehensiveVerification(unittest.TestCase):
     def test_02_all_four_roles_login_and_dashboards(self):
         """Verifies login, token generation, and role-based dashboard cards for all 4 roles."""
         role_creds = [
-            ('Admin', 'alex.morgan@example.org', ['Total Users', 'Total Projects', 'Total Issues', 'Open Issues']),
-            ('Project Manager', 'jordan.lee@example.org', ['My Projects', 'Total Issues', 'Open Issues', 'In Progress']),
-            ('Developer', 'riley.chen@example.org', ['Assigned Issues', 'In Progress', 'Resolved', 'Closed']),
-            ('Tester', 'emerson.clark@example.org', ['Reported Issues', 'Testing', 'Resolved', 'Closed']),
+            ('Admin', 'ADMIN', 'krupa@example.org', ['Total Users', 'Total Projects', 'Total Issues', 'Open Issues']),
+            ('Project Manager', 'PROJECT_MANAGER', 'Arun@example.org', ['My Projects', 'Total Issues', 'Open Issues', 'In Progress']),
+            ('Developer', 'DEVELOPER', 'Priya.Sharma@example.org', ['Assigned Issues', 'In Progress', 'Resolved', 'Closed']),
+            ('Tester', 'TESTER', 'Sunil.clark@example.org', ['Reported Issues', 'Testing', 'Resolved', 'Closed']),
         ]
 
-        for role_name, email, expected_cards in role_creds:
+        for display_role, internal_role, email, expected_cards in role_creds:
             res = self.client.post('/api/auth/login', json={'email': email, 'password': 'BugFlow@2026'})
-            self.assertEqual(res.status_code, 200, f"Login failed for {role_name} ({email})")
+            self.assertEqual(res.status_code, 200, f"Login failed for {display_role} ({email})")
             token = res.json.get('access_token')
             user_obj = res.json.get('user', {})
-            self.assertEqual(user_obj.get('role'), role_name)
+            self.assertIn(user_obj.get('role'), [display_role, internal_role])
             self.assertTrue(token)
 
-            # Get role dashboard stats
+            # Get role dashboard stats using ONLY the verified JWT token (no query params)
             headers = {'Authorization': f'Bearer {token}'}
             dash_res = self.client.get('/api/dashboard/stats', headers=headers)
             self.assertEqual(dash_res.status_code, 200)
             cards = [c['title'] for c in dash_res.json.get('cards', [])]
-            print(f"[Test 2] {role_name} Dashboard cards: {cards}")
+            print(f"[Test 2] {display_role} Dashboard cards: {cards}")
             self.assertEqual(cards, expected_cards)
 
     def test_03_invalid_login_and_unauthorized_access(self):
         """Verifies rejection of invalid credentials and unauthorized routes."""
         # Wrong password
-        res = self.client.post('/api/auth/login', json={'email': 'alex.morgan@example.org', 'password': 'wrongpassword'})
+        res = self.client.post('/api/auth/login', json={'email': 'krupa@example.org', 'password': 'wrongpassword'})
         self.assertEqual(res.status_code, 401)
         self.assertIn('Invalid', res.json.get('error', ''))
 
@@ -83,7 +83,7 @@ class BugFlowComprehensiveVerification(unittest.TestCase):
     def test_04_issue_crud_lifecycle(self):
         """Verifies issue creation, viewing, editing, assignment, status transitions, and deletion."""
         # Admin login
-        adm_res = self.client.post('/api/auth/login', json={'email': 'alex.morgan@example.org', 'password': 'BugFlow@2026'})
+        adm_res = self.client.post('/api/auth/login', json={'email': 'krupa@example.org', 'password': 'BugFlow@2026'})
         adm_token = adm_res.json['access_token']
         headers = {'Authorization': f'Bearer {adm_token}'}
 
@@ -122,7 +122,7 @@ class BugFlowComprehensiveVerification(unittest.TestCase):
         self.assertEqual(res.json['issue']['assigned_to'], 'USR-005')
 
         # 5. Developer Updates Status (In Progress -> Testing)
-        dev_res = self.client.post('/api/auth/login', json={'email': 'riley.chen@example.org', 'password': 'BugFlow@2026'})
+        dev_res = self.client.post('/api/auth/login', json={'email': 'Priya.Sharma@example.org', 'password': 'BugFlow@2026'})
         dev_headers = {'Authorization': f"Bearer {dev_res.json['access_token']}"}
         
         # Open -> In Progress
@@ -136,7 +136,7 @@ class BugFlowComprehensiveVerification(unittest.TestCase):
         self.assertEqual(res.json['issue']['status'], 'Testing')
 
         # 6. Tester Reopens Issue (Testing -> In Progress)
-        tester_res = self.client.post('/api/auth/login', json={'email': 'emerson.clark@example.org', 'password': 'BugFlow@2026'})
+        tester_res = self.client.post('/api/auth/login', json={'email': 'Sunil.clark@example.org', 'password': 'BugFlow@2026'})
         tester_headers = {'Authorization': f"Bearer {tester_res.json['access_token']}"}
         res = self.client.patch(f'/api/issues/{issue_id}/status', json={'status': 'In Progress', 'comment': 'Edge case failed in QA'}, headers=tester_headers)
         self.assertEqual(res.status_code, 200)

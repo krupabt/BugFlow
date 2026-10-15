@@ -31,6 +31,9 @@ export default function Issues() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
+  const normRole = (user?.role || '').toUpperCase().replace(/ /g, '_');
+  const canManageIssue = normRole === 'ADMIN' || normRole === 'PROJECT_MANAGER';
+
   const [issues, setIssues] = useState([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -508,7 +511,7 @@ export default function Issues() {
                           </button>
 
                           {/* Assign Issue */}
-                          {(user?.role === 'Admin' || user?.role === 'Project Manager') && (
+                          {canManageIssue && (
                             <button
                               className="btn-icon"
                               title="Assign Developer"
@@ -531,7 +534,7 @@ export default function Issues() {
                           </button>
 
                           {/* Delete Issue (Admin & PM only) */}
-                          {(user?.role === 'Admin' || user?.role === 'Project Manager') && (
+                          {canManageIssue && (
                             <button
                               className="btn-icon"
                               title="Delete Issue"

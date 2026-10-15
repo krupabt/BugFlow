@@ -19,6 +19,9 @@ export default function Sprints() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
+  const normRole = (user?.role || '').toUpperCase().replace(/ /g, '_');
+  const canManageSprint = normRole === 'ADMIN' || normRole === 'PROJECT_MANAGER';
+
   const [sprints, setSprints] = useState([]);
   const [projects, setProjects] = useState([]);
   const [selectedProject, setSelectedProject] = useState(searchParams.get('project_id') || '');
@@ -97,7 +100,7 @@ export default function Sprints() {
             Track agile sprints, timeline commitments, and associated backlog deliverables
           </p>
         </div>
-        {(user?.role === 'Admin' || user?.role === 'Project Manager') && (
+        {canManageSprint && (
           <button className="btn btn-primary" onClick={() => setCreateModalOpen(true)}>
             <Plus size={16} />
             <span>Create Sprint</span>
@@ -198,7 +201,7 @@ export default function Sprints() {
                     </button>
                   </td>
                   <td style={{ textAlign: 'right' }}>
-                    {(user?.role === 'Admin' || user?.role === 'Project Manager') && (
+                    {canManageSprint && (
                       <select
                         className="form-select"
                         style={{ width: 'auto', padding: '4px 8px', fontSize: '0.75rem' }}

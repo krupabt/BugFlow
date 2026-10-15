@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
+import sqlalchemy as sa
 from app.extensions import db
 from app.models.user import User
 
@@ -20,7 +21,8 @@ def get_users():
     
     query = User.query
     if role and role != "All":
-        query = query.filter(User.role == role)
+        role_filter = role.strip().upper().replace(" ", "_")
+        query = query.filter(sa.func.upper(sa.func.replace(User.role, " ", "_")) == role_filter)
     if active_param is not None:
         is_active = active_param.lower() in ["true", "1"]
         query = query.filter(User.active == is_active)
@@ -42,18 +44,28 @@ def get_user(user_id):
         return jsonify({"error": "User not found"}), 404
     return jsonify(user.to_dict()), 200
 
+ROLE_CANONICAL = {
+    "ADMIN": "ADMIN",
+    "ADMINISTRATOR": "ADMIN",
+    "PROJECT_MANAGER": "PROJECT_MANAGER",
+    "DEVELOPER": "DEVELOPER",
+    "TESTER": "TESTER"
+}
+
 @users_bp.route("", methods=["POST"])
 @jwt_required()
 def create_user():
     requester = get_requester()
-    if not requester or requester.role != "Admin":
+    requester_role = (requester.role or "").strip().upper().replace(" ", "_") if (requester and requester.role) else ""
+    if not requester or requester_role != "ADMIN":
         return jsonify({"error": "Only Administrators can add new users."}), 403
         
     data = request.get_json(silent=True) or {}
     name = data.get("name", "").strip()
     email = data.get("email", "").strip().lower()
     password = data.get("password", "BugFlow@2026")
-    role = data.get("role", "Developer").strip()
+    raw_role = data.get("role", "DEVELOPER").strip().upper().replace(" ", "_")
+    role = ROLE_CANONICAL.get(raw_role, "DEVELOPER")
     
     if not name or not email:
         return jsonify({"error": "Name and email are required."}), 400
@@ -87,7 +99,8 @@ def create_user():
 @jwt_required()
 def update_user(user_id):
     requester = get_requester()
-    if not requester or requester.role != "Admin":
+    requester_role = (requester.role or "").strip().upper().replace(" ", "_") if (requester and requester.role) else ""
+    if not requester or requester_role != "ADMIN":
         return jsonify({"error": "Only Administrators can update user details."}), 403
         
     user = db.session.get(User, user_id)
@@ -104,7 +117,8 @@ def update_user(user_id):
             return jsonify({"error": f"Email '{new_email}' is already in use by another user."}), 409
         user.email = new_email
     if "role" in data and data["role"].strip():
-        user.role = data["role"].strip()
+        raw_role = data["role"].strip().upper().replace(" ", "_")
+        user.role = ROLE_CANONICAL.get(raw_role, user.role)
     if "active" in data:
         user.active = bool(data["active"])
     if "password" in data and data["password"].strip():
@@ -120,7 +134,8 @@ def update_user(user_id):
 @jwt_required()
 def toggle_user_status(user_id):
     requester = get_requester()
-    if not requester or requester.role != "Admin":
+    requester_role = (requester.role or "").strip().upper().replace(" ", "_") if (requester and requester.role) else ""
+    if not requester or requester_role != "ADMIN":
         return jsonify({"error": "Only Administrators can activate/deactivate accounts."}), 403
         
     user = db.session.get(User, user_id)
@@ -147,7 +162,8 @@ def toggle_user_status(user_id):
 @jwt_required()
 def delete_user(user_id):
     requester = get_requester()
-    if not requester or requester.role != "Admin":
+    requester_role = (requester.role or "").strip().upper().replace(" ", "_") if (requester and requester.role) else ""
+    if not requester or requester_role != "ADMIN":
         return jsonify({"error": "Only Administrators can delete users."}), 403
         
     user = db.session.get(User, user_id)

@@ -17,7 +17,12 @@ import { useAuth } from '../context/AuthContext';
 export default function Sidebar() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const role = user?.role || 'Developer';
+  const normRole = (user?.role || '').toUpperCase().replace(/ /g, '_');
+  const isAdmin = normRole === 'ADMIN';
+  const isPM = normRole === 'PROJECT_MANAGER';
+  const isDev = normRole === 'DEVELOPER';
+  const isTester = normRole === 'TESTER';
+  const displayRole = user?.role_display || (isAdmin ? 'Admin' : isPM ? 'Project Manager' : isDev ? 'Developer' : isTester ? 'Tester' : (user?.role || 'Developer'));
 
   const handleLogout = () => {
     logout();
@@ -50,7 +55,7 @@ export default function Sidebar() {
         </NavLink>
 
         {/* ADMIN NAV */}
-        {role === 'Admin' && (
+        {isAdmin && (
           <>
             <NavLink
               to="/users"
@@ -91,7 +96,7 @@ export default function Sidebar() {
         )}
 
         {/* PROJECT MANAGER NAV */}
-        {role === 'Project Manager' && (
+        {isPM && (
           <>
             <NavLink
               to="/projects"
@@ -125,7 +130,7 @@ export default function Sidebar() {
         )}
 
         {/* DEVELOPER NAV */}
-        {role === 'Developer' && (
+        {isDev && (
           <>
             <NavLink
               to="/my-issues"
@@ -159,7 +164,7 @@ export default function Sidebar() {
         )}
 
         {/* TESTER NAV */}
-        {role === 'Tester' && (
+        {isTester && (
           <>
             <NavLink
               to="/reported-issues"
@@ -202,7 +207,7 @@ export default function Sidebar() {
             </div>
             <div style={{ minWidth: 0 }}>
               <div className="user-name" title={user?.name}>{user?.name || 'User'}</div>
-              <span className="user-role-badge">{role}</span>
+              <span className="user-role-badge">{displayRole}</span>
             </div>
           </div>
           <button className="btn-icon" onClick={handleLogout} title="Logout">

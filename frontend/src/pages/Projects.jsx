@@ -20,6 +20,9 @@ export default function Projects() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
+  const normRole = (user?.role || '').toUpperCase().replace(/ /g, '_');
+  const canManageProject = normRole === 'ADMIN' || normRole === 'PROJECT_MANAGER';
+
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -57,7 +60,10 @@ export default function Projects() {
     async function fetchPMs() {
       try {
         const users = await api.getUsers();
-        setPmList(users.filter(u => u.role === 'Project Manager' || u.role === 'Admin'));
+        setPmList(users.filter(u => {
+          const r = (u.role || '').toUpperCase().replace(/ /g, '_');
+          return r === 'PROJECT_MANAGER' || r === 'ADMIN';
+        }));
       } catch (err) {
         console.error('Failed to load PMs:', err);
       }
@@ -125,7 +131,7 @@ export default function Projects() {
             Manage projects, monitor sprint deliverables and issue resolution progress
           </p>
         </div>
-        {(user?.role === 'Admin' || user?.role === 'Project Manager') && (
+        {canManageProject && (
           <button className="btn btn-primary" onClick={() => setCreateModalOpen(true)}>
             <Plus size={16} />
             <span>New Project</span>
@@ -209,7 +215,7 @@ export default function Projects() {
                           >
                             Details
                           </button>
-                          {(user?.role === 'Admin' || user?.role === 'Project Manager') && (
+                          {canManageProject && (
                             <button
                               className="btn-icon"
                               title="Edit Project"

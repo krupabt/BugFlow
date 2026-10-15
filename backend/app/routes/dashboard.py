@@ -11,14 +11,18 @@ from app.models.history import IssueStatusHistory
 dashboard_bp = Blueprint("dashboard", __name__, url_prefix="/api/dashboard")
 
 @dashboard_bp.route("/stats", methods=["GET"])
-@jwt_required(optional=True)
+@jwt_required()
 def get_stats():
     identity = get_jwt_identity()
     user = db.session.get(User, str(identity)) if identity else None
-    role = user.role if user else request.args.get("role", "Admin")
-    user_id = user.id if user else request.args.get("user_id")
+    if not user:
+        return jsonify({"error": "User not found or unauthenticated"}), 401
 
-    # Global counts
+    # Security: Strictly derive role and user_id from verified JWT identity
+    role_raw = (user.role or "").strip().upper().replace(" ", "_")
+    user_id = user.id
+
+    # Global counts from PostgreSQL
     total_users = User.query.filter_by(active=True).count()
     total_projects = Project.query.count()
     total_issues = Issue.query.count()
@@ -29,8 +33,9 @@ def get_stats():
     closed_issues = Issue.query.filter_by(status="Closed").count()
 
     response_data = {
-        "role": role,
-        "user": user.to_dict() if user else None,
+        "role": user.role_display,
+        "internal_role": user.role,
+        "user": user.to_dict(),
         "totals": {
             "total_users": total_users,
             "total_projects": total_projects,
@@ -44,7 +49,7 @@ def get_stats():
     }
 
     # Role specific customizations
-    if role == "Admin":
+    if role_raw == "ADMIN":
         response_data["cards"] = [
             {"title": "Total Users", "value": total_users, "trend": "Active Team Accounts", "type": "users"},
             {"title": "Total Projects", "value": total_projects, "trend": "Under Management", "type": "projects"},
@@ -55,8 +60,8 @@ def get_stats():
         recent_users = User.query.order_by(User.created_at.desc().nullslast(), User.id.asc()).limit(5).all()
         response_data["recent_users"] = [u.to_dict() for u in recent_users]
 
-    elif role == "Project Manager":
-        my_projects = Project.query.filter_by(project_manager_id=user_id).all() if user_id else Project.query.limit(4).all()
+    elif role_raw == "PROJECT_MANAGER":
+        my_projects = Project.query.filter_by(project_manager_id=user_id).all()
         my_project_ids = [p.id for p in my_projects]
         
         pm_issues_query = Issue.query.filter(Issue.project_id.in_(my_project_ids)) if my_project_ids else Issue.query
@@ -80,10 +85,10 @@ def get_stats():
         assigned_devs = db.session.query(sa.func.count(sa.distinct(Issue.assigned_to))).filter(
             Issue.project_id.in_(my_project_ids), Issue.assigned_to.isnot(None)
         ).scalar() if my_project_ids else 0
-        response_data["assigned_devs_count"] = assigned_devs
+        response_data["assigned_devs_count"] = assigned_devs or 0
 
-    elif role == "Developer":
-        dev_assigned = Issue.query.filter_by(assigned_to=user_id) if user_id else Issue.query.filter_by(status="In Progress")
+    elif role_raw == "DEVELOPER":
+        dev_assigned = Issue.query.filter_by(assigned_to=user_id)
         my_total = dev_assigned.count()
         my_progress = dev_assigned.filter_by(status="In Progress").count()
         my_resolved = dev_assigned.filter_by(status="Resolved").count()
@@ -99,8 +104,8 @@ def get_stats():
         dev_issues = dev_assigned.order_by(Issue.updated_at.desc().nullslast()).limit(15).all()
         response_data["assigned_issues_list"] = [i.to_dict() for i in dev_issues]
 
-    elif role == "Tester":
-        reported_q = Issue.query.filter((Issue.reported_by == user_id) | (Issue.created_by == user_id)) if user_id else Issue.query
+    elif role_raw == "TESTER":
+        reported_q = Issue.query.filter((Issue.reported_by == user_id) | (Issue.created_by == user_id))
         rep_total = reported_q.count()
         rep_testing = Issue.query.filter_by(status="Testing").count()
         rep_resolved = reported_q.filter_by(status="Resolved").count()
@@ -139,7 +144,7 @@ def get_stats():
     return jsonify(response_data), 200
 
 @dashboard_bp.route("/recent-activity", methods=["GET"])
-@jwt_required(optional=True)
+@jwt_required()
 def get_recent_activity():
     activities = IssueStatusHistory.query.order_by(IssueStatusHistory.created_at.desc()).limit(15).all()
     result = []

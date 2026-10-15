@@ -36,7 +36,8 @@ def get_sprint(sprint_id):
 def create_sprint():
     ident = get_jwt_identity()
     user = db.session.get(User, str(ident)) if ident else None
-    if not user or user.role not in ["Admin", "Project Manager"]:
+    role_raw = (user.role or "").strip().upper().replace(" ", "_") if (user and user.role) else ""
+    if role_raw not in ["ADMIN", "PROJECT_MANAGER"]:
         return jsonify({"error": "Only Admins and Project Managers can create sprints."}), 403
         
     data = request.get_json(silent=True) or {}
@@ -93,7 +94,8 @@ def create_sprint():
 def update_sprint_status(sprint_id):
     ident = get_jwt_identity()
     user = db.session.get(User, str(ident)) if ident else None
-    if not user or user.role not in ["Admin", "Project Manager"]:
+    role_raw = (user.role or "").strip().upper().replace(" ", "_") if (user and user.role) else ""
+    if role_raw not in ["ADMIN", "PROJECT_MANAGER"]:
         return jsonify({"error": "Only Admins and Project Managers can update sprint status."}), 403
         
     sprint = db.session.get(Sprint, sprint_id)

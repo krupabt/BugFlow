@@ -35,7 +35,7 @@ export default function Settings() {
             </div>
             <div>
               <span style={{ color: '#74748B', display: 'block', fontSize: '0.78rem', fontWeight: 600 }}>System Role</span>
-              <span className="user-role-badge">{user?.role}</span>
+              <span className="user-role-badge">{user?.role_display || user?.role}</span>
             </div>
           </div>
         </div>

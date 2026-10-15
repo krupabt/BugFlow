@@ -42,13 +42,14 @@ def get_project(project_id):
 def create_project():
     ident = get_jwt_identity()
     user = db.session.get(User, str(ident)) if ident else None
-    if not user or user.role not in ["Admin", "Project Manager"]:
+    role_raw = (user.role or "").strip().upper().replace(" ", "_") if (user and user.role) else ""
+    if role_raw not in ["ADMIN", "PROJECT_MANAGER"]:
         return jsonify({"error": "Only Admins and Project Managers can create projects."}), 403
 
     data = request.get_json(silent=True) or {}
     name = data.get("name", "").strip()
     description = data.get("description", "").strip()
-    pm_id = data.get("project_manager_id") or (user.id if user.role == "Project Manager" else None)
+    pm_id = data.get("project_manager_id") or (user.id if role_raw == "PROJECT_MANAGER" else None)
     
     if not name:
         return jsonify({"error": "Project name is required"}), 400
@@ -81,14 +82,15 @@ def create_project():
 def update_project(project_id):
     ident = get_jwt_identity()
     user = db.session.get(User, str(ident)) if ident else None
-    if not user or user.role not in ["Admin", "Project Manager"]:
+    role_raw = (user.role or "").strip().upper().replace(" ", "_") if (user and user.role) else ""
+    if role_raw not in ["ADMIN", "PROJECT_MANAGER"]:
         return jsonify({"error": "Only Admins and Project Managers can edit projects."}), 403
 
     project = db.session.get(Project, project_id)
     if not project:
         return jsonify({"error": "Project not found"}), 404
         
-    if user.role == "Project Manager" and project.project_manager_id != user.id:
+    if role_raw == "PROJECT_MANAGER" and project.project_manager_id != user.id:
         return jsonify({"error": "You can only edit projects assigned to you."}), 403
 
     data = request.get_json(silent=True) or {}

@@ -185,7 +185,7 @@ export default function Users() {
                   <td style={{ fontWeight: 600 }}>{u.name}</td>
                   <td>{u.email}</td>
                   <td>
-                    <span className="user-role-badge">{u.role}</span>
+                    <span className="user-role-badge">{u.role_display || u.role}</span>
                   </td>
                   <td>
                     {u.active ? (
@@ -323,7 +323,7 @@ export default function Users() {
                   <label className="form-label">Role</label>
                   <select
                     className="form-select"
-                    value={editModalUser.role || 'Developer'}
+                    value={editModalUser.role_display || editModalUser.role || 'Developer'}
                     onChange={(e) => setEditModalUser({ ...editModalUser, role: e.target.value })}
                   >
                     {ROLES.map(r => (

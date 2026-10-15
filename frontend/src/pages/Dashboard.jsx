@@ -26,13 +26,18 @@ export default function Dashboard() {
   const [error, setError] = useState('');
   const [recentActivity, setRecentActivity] = useState([]);
   
-  const role = user?.role || 'Developer';
+  const normRole = (user?.role || '').toUpperCase().replace(/ /g, '_');
+  const isAdmin = normRole === 'ADMIN';
+  const isPM = normRole === 'PROJECT_MANAGER';
+  const isDev = normRole === 'DEVELOPER';
+  const isTester = normRole === 'TESTER';
+  const displayRole = user?.role_display || (isAdmin ? 'Admin' : isPM ? 'Project Manager' : isDev ? 'Developer' : isTester ? 'Tester' : (user?.role || 'Developer'));
 
   const loadDashboard = async () => {
     setLoading(true);
     setError('');
     try {
-      const stats = await api.getDashboardStats(role, user?.id);
+      const stats = await api.getDashboardStats();
       setData(stats);
       const activity = await api.getRecentActivity();
       setRecentActivity(activity);
@@ -45,13 +50,13 @@ export default function Dashboard() {
 
   useEffect(() => {
     loadDashboard();
-  }, [role, user?.id]);
+  }, [user?.id, user?.role]);
 
   if (loading) {
     return (
       <div className="loading-container">
         <div className="spinner"></div>
-        <p>Loading real-time {role} dashboard...</p>
+        <p>Loading real-time {displayRole} dashboard...</p>
       </div>
     );
   }
@@ -83,25 +88,25 @@ export default function Dashboard() {
       {/* Top Header */}
       <div className="page-header">
         <div>
-          <h1 className="page-title">{role} Dashboard</h1>
+          <h1 className="page-title">{displayRole} Dashboard</h1>
           <p className="page-subtitle">
             Welcome back, {user?.name}! Live workspace metrics connected to PostgreSQL.
           </p>
         </div>
         <div className="header-actions">
-          {(role === 'Admin' || role === 'Project Manager') && (
+          {(isAdmin || isPM) && (
             <button className="btn btn-primary" onClick={() => navigate('/issues?action=create')}>
               <Plus size={16} />
               <span>Create Issue</span>
             </button>
           )}
-          {role === 'Tester' && (
+          {isTester && (
             <button className="btn btn-primary" onClick={() => navigate('/issues?action=create')}>
               <Plus size={16} />
               <span>Report Bug</span>
             </button>
           )}
-          {role === 'Admin' && (
+          {isAdmin && (
             <button className="btn btn-secondary" onClick={() => navigate('/users')}>
               <Users size={16} />
               <span>Manage Users</span>
@@ -132,7 +137,7 @@ export default function Dashboard() {
       {/* ---------------------------------------------------- */}
       {/* ADMIN DASHBOARD SPECIFIC SECTIONS                   */}
       {/* ---------------------------------------------------- */}
-      {role === 'Admin' && (
+      {isAdmin && (
         <>
           <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: '24px', marginBottom: '24px' }}>
             {/* Status Distribution */}
@@ -237,7 +242,7 @@ export default function Dashboard() {
       {/* ---------------------------------------------------- */}
       {/* PROJECT MANAGER DASHBOARD SPECIFIC SECTIONS          */}
       {/* ---------------------------------------------------- */}
-      {role === 'Project Manager' && (
+      {isPM && (
         <>
           <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '24px', marginBottom: '24px' }}>
             {/* My Projects */}
@@ -296,7 +301,7 @@ export default function Dashboard() {
       {/* ---------------------------------------------------- */}
       {/* DEVELOPER DASHBOARD SPECIFIC SECTIONS                */}
       {/* ---------------------------------------------------- */}
-      {role === 'Developer' && (
+      {isDev && (
         <div className="card">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
             <h2 style={{ fontSize: '1rem', fontWeight: 700 }}>Your Assigned Issues</h2>
@@ -360,7 +365,7 @@ export default function Dashboard() {
       {/* ---------------------------------------------------- */}
       {/* TESTER DASHBOARD SPECIFIC SECTIONS                   */}
       {/* ---------------------------------------------------- */}
-      {role === 'Tester' && (
+      {isTester && (
         <div className="card">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
             <h2 style={{ fontSize: '1rem', fontWeight: 700 }}>Issues Awaiting Verification / Testing</h2>

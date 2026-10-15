@@ -1,4 +1,4 @@
-﻿user_id,display_name,email,role,active
+user_id,display_name,email,role,active
 USR-001,Krupa,krupa@example.org,ADMIN,True
 USR-002,Arun,Arun@example.org,PROJECT_MANAGER,True
 USR-003,Casey Patel,casey.patel@example.org,PROJECT_MANAGER,True
