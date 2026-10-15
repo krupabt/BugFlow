@@ -6,7 +6,10 @@ import Dashboard from './pages/Dashboard';
 import Issues from './pages/Issues';
 import IssueDetail from './pages/IssueDetail';
 import Projects from './pages/Projects';
-import ResolutionAssistant from './pages/ResolutionAssistant';
+import Sprints from './pages/Sprints';
+import Reports from './pages/Reports';
+import Users from './pages/Users';
+import Settings from './pages/Settings';
 import Login from './pages/Login';
 import Register from './pages/Register';
 
@@ -15,13 +18,13 @@ function ProtectedLayout() {
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center' }}>
-        <p style={{ color: '#64748b', fontSize: '1rem' }}>Loading BugFlow workspace...</p>
+      <div className="loading-container" style={{ height: '100vh' }}>
+        <div className="spinner"></div>
+        <p>Loading BugFlow workspace...</p>
       </div>
     );
   }
 
-  // If no token or user, redirect to login
   if (!token && !user) {
     return <Navigate to="/login" replace />;
   }
@@ -34,8 +37,15 @@ function ProtectedLayout() {
           <Route path="/" element={<Dashboard />} />
           <Route path="/issues" element={<Issues />} />
           <Route path="/issues/:id" element={<IssueDetail />} />
+          <Route path="/my-issues" element={<Issues />} />
+          <Route path="/reported-issues" element={<Issues />} />
+          <Route path="/my-tests" element={<Issues />} />
           <Route path="/projects" element={<Projects />} />
-          <Route path="/assistant" element={<ResolutionAssistant />} />
+          <Route path="/sprints" element={<Sprints />} />
+          <Route path="/reports" element={<Reports />} />
+          <Route path="/users" element={<Users />} />
+          <Route path="/settings" element={<Settings />} />
+          <Route path="/comments" element={<Issues />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>

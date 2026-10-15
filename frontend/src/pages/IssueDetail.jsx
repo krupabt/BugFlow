@@ -1,21 +1,25 @@
-import React, { useEffect, useState } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   ArrowLeft,
-  Bug,
-  Clock,
+  Calendar,
   User,
-  FolderGit2,
-  CheckCircle,
+  Clock,
+  Layers,
+  CheckCircle2,
+  AlertCircle,
   MessageSquare,
   History,
-  Sparkles,
-  AlertCircle,
   Send,
+  Edit,
+  ArrowRightCircle,
+  ShieldCheck,
+  Tag
 } from 'lucide-react';
-import Header from '../components/Header';
 import { api } from '../api';
 import { useAuth } from '../context/AuthContext';
+
+const WORKFLOW_STAGES = ["Open", "In Progress", "Testing", "Resolved", "Closed"];
 
 export default function IssueDetail() {
   const { id } = useParams();
@@ -25,16 +29,15 @@ export default function IssueDetail() {
   const [issue, setIssue] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [newComment, setNewComment] = useState('');
+  const [commentSubmitting, setCommentSubmitting] = useState(false);
 
   // Status transition state
-  const [newStatus, setNewStatus] = useState('');
+  const [statusModalOpen, setStatusModalOpen] = useState(false);
+  const [targetStatus, setTargetStatus] = useState('Open');
   const [statusComment, setStatusComment] = useState('');
-  const [resolutionText, setResolutionText] = useState('');
-  const [updatingStatus, setUpdatingStatus] = useState(false);
-
-  // New comment state
-  const [commentText, setCommentText] = useState('');
-  const [submittingComment, setSubmittingComment] = useState(false);
+  const [resolutionSummary, setResolutionSummary] = useState('');
+  const [notice, setNotice] = useState('');
 
   const loadIssue = async () => {
     setLoading(true);
@@ -42,10 +45,9 @@ export default function IssueDetail() {
     try {
       const data = await api.getIssue(id);
       setIssue(data);
-      setNewStatus(data.status);
-      setResolutionText(data.resolution || '');
+      setTargetStatus(data.status);
     } catch (err) {
-      setError(err.message || 'Issue not found.');
+      setError(err.message || 'Failed to load issue details');
     } finally {
       setLoading(false);
     }
@@ -55,45 +57,43 @@ export default function IssueDetail() {
     loadIssue();
   }, [id]);
 
-  const handleStatusChange = async (e) => {
+  const handleCommentSubmit = async (e) => {
     e.preventDefault();
-    if (newStatus === issue.status) return;
-
-    setUpdatingStatus(true);
+    if (!newComment.trim()) return;
+    setCommentSubmitting(true);
     try {
-      await api.updateStatus(issue.id, newStatus, statusComment, resolutionText);
-      setStatusComment('');
+      await api.addComment(id, newComment.trim());
+      setNewComment('');
+      setNotice('Comment added successfully!');
+      setTimeout(() => setNotice(''), 3000);
       loadIssue();
     } catch (err) {
-      alert(`Error updating status: ${err.message}`);
+      setError(err.message || 'Failed to add comment');
     } finally {
-      setUpdatingStatus(false);
+      setCommentSubmitting(false);
     }
   };
 
-  const handleAddComment = async (e) => {
+  const handleStatusTransition = async (e) => {
     e.preventDefault();
-    if (!commentText.trim()) return;
-
-    setSubmittingComment(true);
     try {
-      await api.addComment(issue.id, commentText);
-      setCommentText('');
+      await api.updateStatus(id, targetStatus, statusComment, resolutionSummary);
+      setNotice(`Issue transitioned to ${targetStatus}!`);
+      setTimeout(() => setNotice(''), 3000);
+      setStatusModalOpen(false);
+      setStatusComment('');
+      setResolutionSummary('');
       loadIssue();
     } catch (err) {
-      alert(`Error posting comment: ${err.message}`);
-    } finally {
-      setSubmittingComment(false);
+      setError(err.message || 'Failed to update status');
     }
   };
 
   if (loading) {
     return (
-      <div>
-        <Header title="Defect Details" />
-        <div className="content-body" style={{ textAlign: 'center', padding: '60px', color: '#64748b' }}>
-          Loading issue #{id} from PostgreSQL database...
-        </div>
+      <div className="loading-container">
+        <div className="spinner"></div>
+        <p>Loading issue details...</p>
       </div>
     );
   }
@@ -101,16 +101,12 @@ export default function IssueDetail() {
   if (error || !issue) {
     return (
       <div>
-        <Header title="Defect Details" />
-        <div className="content-body">
-          <div className="alert alert-error">
-            <AlertCircle size={18} />
-            <span>{error || 'Issue not found'}</span>
-          </div>
-          <Link to="/issues" className="btn btn-secondary">
-            <ArrowLeft size={16} />
-            <span>Back to Issues</span>
-          </Link>
+        <button className="btn btn-secondary" style={{ marginBottom: '16px' }} onClick={() => navigate('/issues')}>
+          <ArrowLeft size={16} /> Back to Issues
+        </button>
+        <div className="toast-notice toast-error">
+          <AlertCircle size={18} />
+          <span>{error || 'Issue not found.'}</span>
         </div>
       </div>
     );
@@ -118,306 +114,315 @@ export default function IssueDetail() {
 
   return (
     <div>
-      <Header title={`Issue Details: ${issue.issue_key}`} />
-
-      <div className="content-body">
-        {/* Back Link */}
-        <div style={{ marginBottom: '20px' }}>
-          <Link
-            to="/issues"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              textDecoration: 'none',
-              color: '#64748b',
-              fontSize: '0.88rem',
-              fontWeight: '500',
-            }}
-          >
-            <ArrowLeft size={16} />
-            <span>Back to all issues</span>
-          </Link>
+      {/* Back button & Action Bar */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+        <button className="btn btn-secondary" onClick={() => navigate('/issues')}>
+          <ArrowLeft size={16} /> Back to Issues
+        </button>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button className="btn btn-primary" onClick={() => setStatusModalOpen(true)}>
+            <ArrowRightCircle size={16} />
+            <span>Update Status</span>
+          </button>
         </div>
+      </div>
 
-        {/* Top Header Card */}
-        <div className="card" style={{ marginBottom: '24px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-                <span style={{ fontSize: '1.25rem', fontWeight: '700', color: '#2563eb' }}>
-                  {issue.issue_key}
-                </span>
-                <span className={`badge badge-${issue.status.toLowerCase().replace(' ', '')}`}>
-                  {issue.status}
-                </span>
-                <span className={`badge badge-${issue.severity.toLowerCase()}`}>
-                  {issue.severity} Severity
-                </span>
-                {issue.is_historical && (
-                  <span className="badge badge-historical">Historical Imported</span>
-                )}
-              </div>
-              <h2 style={{ fontSize: '1.4rem', fontWeight: '700', color: '#0f172a' }}>
-                {issue.title}
-              </h2>
+      {notice && (
+        <div className="toast-notice toast-success">
+          <CheckCircle2 size={18} />
+          <span>{notice}</span>
+        </div>
+      )}
+
+      {/* Main Grid: Details (Left) + Meta/Sidebar (Right) */}
+      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '24px' }}>
+        
+        {/* Left Column: Details, Technical info, Comments */}
+        <div>
+          <div className="card">
+            {/* Key + Title */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+              <span style={{ fontSize: '0.95rem', fontWeight: 800, color: '#6754E8' }}>{issue.id}</span>
+              <span className={`badge badge-${(issue.status || 'Open').toLowerCase().replace(' ', '-')}`}>
+                {issue.status}
+              </span>
+              <span className={`badge badge-${(issue.priority || 'P2').toLowerCase()}`}>
+                {issue.priority}
+              </span>
             </div>
+            <h1 style={{ fontSize: '1.4rem', fontWeight: 700, marginBottom: '16px', color: '#24243B' }}>
+              {issue.title}
+            </h1>
 
-            {/* Quick Assistant Shortcut */}
-            <button
-              className="btn btn-secondary"
-              onClick={() => {
-                navigate(
-                  `/assistant?title=${encodeURIComponent(issue.title)}&desc=${encodeURIComponent(issue.description || '')}`
-                );
-              }}
-            >
-              <Sparkles size={16} color="#2563eb" />
-              <span>Diagnose in Resolution Assistant</span>
-            </button>
-          </div>
-        </div>
-
-        {/* 2 Column Layout: Details + Sidebar Actions */}
-        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '24px' }}>
-          {/* Left Column: Description, Discussion & Audit Timeline */}
-          <div>
             {/* Description */}
-            <div className="card" style={{ marginBottom: '24px' }}>
-              <h3 style={{ fontSize: '1rem', fontWeight: '600', marginBottom: '14px', color: '#0f172a' }}>
-                Description & Reproduction Details
+            <div style={{ marginBottom: '24px' }}>
+              <h3 style={{ fontSize: '0.85rem', fontWeight: 700, color: '#74748B', textTransform: 'uppercase', marginBottom: '6px' }}>
+                Description
               </h3>
-              <div
-                style={{
-                  fontSize: '0.92rem',
-                  lineHeight: '1.6',
-                  color: '#334155',
-                  whiteSpace: 'pre-wrap',
-                  backgroundColor: '#f8fafc',
-                  padding: '16px',
-                  borderRadius: '6px',
-                  border: '1px solid #e2e8f0',
-                }}
-              >
-                {issue.description || 'No detailed description provided for this defect report.'}
+              <p style={{ fontSize: '0.92rem', color: '#24243B', whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
+                {issue.description || 'No description provided.'}
+              </p>
+            </div>
+
+            {/* Technical Reproduction Details */}
+            <div style={{ borderTop: '1px solid #E9E7F0', paddingTop: '20px', marginBottom: '24px' }}>
+              <h3 style={{ fontSize: '0.9rem', fontWeight: 700, marginBottom: '14px', color: '#24243B' }}>
+                Technical & Reproduction Details
+              </h3>
+              
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '14px' }}>
+                <div>
+                  <span style={{ fontSize: '0.78rem', color: '#74748B', display: 'block', fontWeight: 600 }}>Component</span>
+                  <span style={{ fontSize: '0.88rem', fontWeight: 500 }}>{issue.component || 'Not specified'}</span>
+                </div>
+                <div>
+                  <span style={{ fontSize: '0.78rem', color: '#74748B', display: 'block', fontWeight: 600 }}>Environment</span>
+                  <span style={{ fontSize: '0.88rem', fontWeight: 500 }}>{issue.environment || 'Not specified'}</span>
+                </div>
               </div>
 
-              {issue.resolution && (
-                <div style={{ marginTop: '20px', padding: '16px', backgroundColor: '#ecfdf5', borderRadius: '6px', border: '1px solid #a7f3d0' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#065f46', fontWeight: '600', marginBottom: '4px' }}>
-                    <CheckCircle size={18} />
-                    <span>Resolution Details</span>
+              {issue.steps_to_reproduce && (
+                <div style={{ marginBottom: '14px' }}>
+                  <span style={{ fontSize: '0.78rem', color: '#74748B', display: 'block', fontWeight: 600, marginBottom: '4px' }}>
+                    Steps to Reproduce
+                  </span>
+                  <div style={{ background: '#F8F9FD', padding: '10px 14px', borderRadius: '6px', fontSize: '0.85rem', border: '1px solid #E9E7F0' }}>
+                    {issue.steps_to_reproduce}
                   </div>
-                  <p style={{ fontSize: '0.9rem', color: '#047857' }}>{issue.resolution}</p>
+                </div>
+              )}
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '14px' }}>
+                {issue.expected_result && (
+                  <div>
+                    <span style={{ fontSize: '0.78rem', color: '#74748B', display: 'block', fontWeight: 600, marginBottom: '4px' }}>Expected Result</span>
+                    <div style={{ background: '#F8F9FD', padding: '8px 12px', borderRadius: '6px', fontSize: '0.84rem' }}>
+                      {issue.expected_result}
+                    </div>
+                  </div>
+                )}
+                {issue.actual_result && (
+                  <div>
+                    <span style={{ fontSize: '0.78rem', color: '#74748B', display: 'block', fontWeight: 600, marginBottom: '4px' }}>Actual Result</span>
+                    <div style={{ background: '#F8F9FD', padding: '8px 12px', borderRadius: '6px', fontSize: '0.84rem' }}>
+                      {issue.actual_result}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {issue.business_impact && (
+                <div>
+                  <span style={{ fontSize: '0.78rem', color: '#74748B', display: 'block', fontWeight: 600 }}>Business Impact</span>
+                  <span style={{ fontSize: '0.88rem', fontWeight: 500 }}>{issue.business_impact}</span>
                 </div>
               )}
             </div>
 
-            {/* Comments & Discussion */}
-            <div className="card" style={{ marginBottom: '24px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-                <MessageSquare size={18} color="#2563eb" />
-                <h3 style={{ fontSize: '1rem', fontWeight: '600' }}>
-                  Developer Discussion ({issue.comments?.length || 0})
+            {/* Resolution Information if Resolved */}
+            {(issue.resolution_summary || issue.root_cause) && (
+              <div style={{ borderTop: '1px solid #E9E7F0', paddingTop: '20px', background: '#F0FDF4', padding: '16px', borderRadius: '8px', border: '1px solid #BBF7D0', marginBottom: '24px' }}>
+                <h3 style={{ fontSize: '0.9rem', fontWeight: 700, color: '#15803D', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <ShieldCheck size={18} /> Resolution Details
                 </h3>
-              </div>
-
-              {/* Comment List */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '20px' }}>
-                {issue.comments && issue.comments.length > 0 ? (
-                  issue.comments.map((c) => (
-                    <div
-                      key={c.id}
-                      style={{
-                        padding: '14px 16px',
-                        backgroundColor: '#f8fafc',
-                        borderRadius: '6px',
-                        border: '1px solid #e2e8f0',
-                      }}
-                    >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                        <span style={{ fontWeight: '600', fontSize: '0.88rem', color: '#0f172a' }}>
-                          {c.user_name}
-                        </span>
-                        <span style={{ fontSize: '0.78rem', color: '#94a3b8' }}>
-                          {c.created_at ? new Date(c.created_at).toLocaleString() : ''}
-                        </span>
-                      </div>
-                      <p style={{ fontSize: '0.88rem', color: '#334155', lineHeight: '1.5' }}>
-                        {c.content}
-                      </p>
-                    </div>
-                  ))
-                ) : (
-                  <p style={{ color: '#64748b', fontSize: '0.88rem', fontStyle: 'italic' }}>
-                    No comments yet. Start the technical discussion below.
-                  </p>
+                {issue.resolution_summary && (
+                  <div style={{ marginBottom: '8px' }}>
+                    <span style={{ fontSize: '0.78rem', color: '#166534', fontWeight: 600, display: 'block' }}>Resolution Summary</span>
+                    <p style={{ fontSize: '0.88rem', color: '#14532D' }}>{issue.resolution_summary}</p>
+                  </div>
+                )}
+                {issue.root_cause && (
+                  <div>
+                    <span style={{ fontSize: '0.78rem', color: '#166534', fontWeight: 600, display: 'block' }}>Root Cause</span>
+                    <p style={{ fontSize: '0.88rem', color: '#14532D' }}>{issue.root_cause}</p>
+                  </div>
                 )}
               </div>
+            )}
+          </div>
 
-              {/* Add Comment Form */}
-              <form onSubmit={handleAddComment}>
-                <div className="form-group" style={{ marginBottom: '10px' }}>
-                  <textarea
-                    className="form-textarea"
-                    placeholder="Write a comment, share root-cause findings, or update the team..."
-                    value={commentText}
-                    onChange={(e) => setCommentText(e.target.value)}
-                    rows={3}
-                    required
-                  />
-                </div>
-                <button type="submit" className="btn btn-primary btn-sm" disabled={submittingComment}>
-                  <Send size={14} />
-                  <span>{submittingComment ? 'Posting...' : 'Post Comment'}</span>
-                </button>
-              </form>
+          {/* Comments Section */}
+          <div className="card">
+            <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <MessageSquare size={18} /> Comments ({issue.comments?.length || 0})
+            </h3>
+
+            {/* Existing Comments */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '20px' }}>
+              {(issue.comments || []).length === 0 ? (
+                <p style={{ color: '#74748B', fontSize: '0.85rem' }}>No comments posted yet. Start the discussion below.</p>
+              ) : (
+                issue.comments.map((c) => (
+                  <div key={c.id} style={{ padding: '12px 16px', background: '#F8F9FD', borderRadius: '8px', border: '1px solid #E9E7F0' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                      <span style={{ fontWeight: 600, fontSize: '0.85rem' }}>{c.user_name}</span>
+                      <span style={{ fontSize: '0.75rem', color: '#74748B' }}>
+                        {c.created_at ? new Date(c.created_at).toLocaleString() : ''}
+                      </span>
+                    </div>
+                    <p style={{ fontSize: '0.88rem', color: '#24243B', whiteSpace: 'pre-wrap' }}>{c.content}</p>
+                  </div>
+                ))
+              )}
             </div>
 
-            {/* Audit Log / Status History Timeline */}
-            <div className="card">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-                <History size={18} color="#2563eb" />
-                <h3 style={{ fontSize: '1rem', fontWeight: '600' }}>Lifecycle & Status History</h3>
+            {/* Add Comment Form */}
+            <form onSubmit={handleCommentSubmit}>
+              <div className="form-group">
+                <textarea
+                  className="form-textarea"
+                  rows="3"
+                  placeholder="Write a comment or technical update..."
+                  value={newComment}
+                  onChange={(e) => setNewComment(e.target.value)}
+                />
               </div>
+              <button type="submit" className="btn btn-primary" disabled={commentSubmitting || !newComment.trim()}>
+                <Send size={15} />
+                <span>{commentSubmitting ? 'Posting...' : 'Post Comment'}</span>
+              </button>
+            </form>
+          </div>
+        </div>
 
-              {issue.status_history && issue.status_history.length > 0 ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  {issue.status_history.map((h) => (
-                    <div
-                      key={h.id}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'flex-start',
-                        gap: '12px',
-                        fontSize: '0.85rem',
-                        borderLeft: '2px solid #3b82f6',
-                        paddingLeft: '14px',
-                      }}
-                    >
-                      <div>
-                        <div>
-                          <strong>{h.changed_by}</strong> updated status from{' '}
-                          <span style={{ color: '#64748b' }}>{h.old_status || 'Creation'}</span> to{' '}
-                          <span style={{ fontWeight: '600', color: '#0f172a' }}>{h.new_status}</span>
-                        </div>
-                        {h.comment && (
-                          <div style={{ color: '#64748b', marginTop: '2px', fontStyle: 'italic' }}>
-                            "{h.comment}"
-                          </div>
-                        )}
-                        <div style={{ color: '#94a3b8', fontSize: '0.78rem', marginTop: '3px' }}>
-                          {h.created_at ? new Date(h.created_at).toLocaleString() : ''}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+        {/* Right Column: Metadata & History Timeline */}
+        <div>
+          {/* Metadata Card */}
+          <div className="card" style={{ marginBottom: '24px' }}>
+            <h3 style={{ fontSize: '0.9rem', fontWeight: 700, marginBottom: '16px' }}>Issue Properties</h3>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', fontSize: '0.85rem' }}>
+              <div>
+                <span style={{ color: '#74748B', display: 'block', fontSize: '0.75rem', fontWeight: 600 }}>Project</span>
+                <span style={{ fontWeight: 600 }}>{issue.project_name}</span>
+              </div>
+              <div>
+                <span style={{ color: '#74748B', display: 'block', fontSize: '0.75rem', fontWeight: 600 }}>Issue Type</span>
+                <span>{issue.issue_type}</span>
+              </div>
+              <div>
+                <span style={{ color: '#74748B', display: 'block', fontSize: '0.75rem', fontWeight: 600 }}>Severity</span>
+                <span className={`badge badge-${(issue.severity || 'Medium').toLowerCase()}`}>{issue.severity}</span>
+              </div>
+              <div>
+                <span style={{ color: '#74748B', display: 'block', fontSize: '0.75rem', fontWeight: 600 }}>Priority</span>
+                <span className={`badge badge-${(issue.priority || 'P2').toLowerCase()}`}>{issue.priority}</span>
+              </div>
+              <div>
+                <span style={{ color: '#74748B', display: 'block', fontSize: '0.75rem', fontWeight: 600 }}>Assigned Developer</span>
+                <span style={{ fontWeight: 600 }}>{issue.assignee_name || 'Unassigned'}</span>
+              </div>
+              <div>
+                <span style={{ color: '#74748B', display: 'block', fontSize: '0.75rem', fontWeight: 600 }}>Reported By</span>
+                <span>{issue.reporter_name || 'System'}</span>
+              </div>
+              <div>
+                <span style={{ color: '#74748B', display: 'block', fontSize: '0.75rem', fontWeight: 600 }}>Sprint</span>
+                <span>{issue.sprint_name || issue.sprint_id || 'Backlog'}</span>
+              </div>
+              <div>
+                <span style={{ color: '#74748B', display: 'block', fontSize: '0.75rem', fontWeight: 600 }}>Reopen Count</span>
+                <span style={{ fontWeight: 600, color: issue.reopen_count > 0 ? '#EF4444' : '#24243B' }}>
+                  {issue.reopen_count || 0}
+                </span>
+              </div>
+              <div>
+                <span style={{ color: '#74748B', display: 'block', fontSize: '0.75rem', fontWeight: 600 }}>Created Date</span>
+                <span>{issue.created_date || (issue.created_at ? issue.created_at.slice(0, 10) : '—')}</span>
+              </div>
+              {issue.resolved_date && (
+                <div>
+                  <span style={{ color: '#74748B', display: 'block', fontSize: '0.75rem', fontWeight: 600 }}>Resolved Date</span>
+                  <span style={{ color: '#16A34A', fontWeight: 600 }}>{issue.resolved_date}</span>
                 </div>
-              ) : (
-                <p style={{ color: '#64748b', fontSize: '0.85rem' }}>No status transitions recorded.</p>
               )}
             </div>
           </div>
 
-          {/* Right Column: Metadata & Status Controls */}
-          <div>
-            {/* Status Update Card */}
-            <div className="card" style={{ marginBottom: '24px' }}>
-              <h3 style={{ fontSize: '0.95rem', fontWeight: '600', marginBottom: '14px' }}>
-                Workflow Transition
-              </h3>
-
-              <form onSubmit={handleStatusChange}>
-                <div className="form-group">
-                  <label className="form-label">Update Status</label>
-                  <select
-                    className="form-select"
-                    value={newStatus}
-                    onChange={(e) => setNewStatus(e.target.value)}
-                  >
-                    <option value="Open">Open</option>
-                    <option value="In Progress">In Progress</option>
-                    <option value="Resolved">Resolved</option>
-                    <option value="Closed">Closed</option>
-                  </select>
-                </div>
-
-                {(newStatus === 'Resolved' || newStatus === 'Closed') && (
-                  <div className="form-group">
-                    <label className="form-label">Resolution Details</label>
-                    <input
-                      type="text"
-                      className="form-input"
-                      placeholder="e.g. Fixed in commit #a8f12, verified by QA"
-                      value={resolutionText}
-                      onChange={(e) => setResolutionText(e.target.value)}
-                    />
+          {/* Audit History Timeline */}
+          <div className="card">
+            <h3 style={{ fontSize: '0.9rem', fontWeight: 700, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <History size={16} /> Status History
+            </h3>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {(issue.status_history || []).length === 0 ? (
+                <p style={{ color: '#74748B', fontSize: '0.8rem' }}>No status changes recorded yet.</p>
+              ) : (
+                issue.status_history.map((h) => (
+                  <div key={h.id} style={{ borderLeft: '2px solid #6754E8', paddingLeft: '10px', fontSize: '0.8rem' }}>
+                    <div style={{ fontWeight: 600 }}>
+                      {h.old_status ? `${h.old_status} → ` : ''}<strong>{h.new_status}</strong>
+                    </div>
+                    {h.comment && <div style={{ color: '#74748B', margin: '2px 0' }}>{h.comment}</div>}
+                    <div style={{ fontSize: '0.72rem', color: '#A3A3BA' }}>
+                      By {h.changed_by} • {h.created_at ? new Date(h.created_at).toLocaleDateString() : ''}
+                    </div>
                   </div>
-                )}
-
-                <div className="form-group">
-                  <label className="form-label">Transition Note</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    placeholder="Optional note for the audit timeline"
-                    value={statusComment}
-                    onChange={(e) => setStatusComment(e.target.value)}
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  className="btn btn-primary"
-                  style={{ width: '100%' }}
-                  disabled={updatingStatus || newStatus === issue.status}
-                >
-                  {updatingStatus ? 'Updating...' : 'Apply Status Change'}
-                </button>
-              </form>
-            </div>
-
-            {/* Defect Metadata Card */}
-            <div className="card">
-              <h3 style={{ fontSize: '0.95rem', fontWeight: '600', marginBottom: '16px' }}>
-                Ticket Attributes
-              </h3>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '0.88rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: '#64748b' }}>Project:</span>
-                  <span style={{ fontWeight: '600' }}>{issue.project_name || issue.project_key}</span>
-                </div>
-
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: '#64748b' }}>Priority:</span>
-                  <span style={{ fontWeight: '600' }}>{issue.priority}</span>
-                </div>
-
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: '#64748b' }}>Assignee:</span>
-                  <span style={{ fontWeight: '600' }}>{issue.assignee_name || 'Unassigned'}</span>
-                </div>
-
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: '#64748b' }}>Reporter:</span>
-                  <span style={{ fontWeight: '600' }}>{issue.reporter_name || 'System'}</span>
-                </div>
-
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: '#64748b' }}>Reported At:</span>
-                  <span>{issue.created_at ? new Date(issue.created_at).toLocaleDateString() : '-'}</span>
-                </div>
-
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: '#64748b' }}>Last Updated:</span>
-                  <span>{issue.updated_at ? new Date(issue.updated_at).toLocaleDateString() : '-'}</span>
-                </div>
-              </div>
+                ))
+              )}
             </div>
           </div>
         </div>
       </div>
+
+      {/* Status Transition Modal */}
+      {statusModalOpen && (
+        <div className="modal-overlay">
+          <div className="modal-content" style={{ maxWidth: '480px' }}>
+            <div className="modal-header">
+              <h2 className="modal-title">Transition Issue Status</h2>
+              <button className="btn-icon" onClick={() => setStatusModalOpen(false)}>×</button>
+            </div>
+            <form onSubmit={handleStatusTransition}>
+              <div className="modal-body">
+                <div className="form-group">
+                  <label className="form-label">New Status *</label>
+                  <select
+                    className="form-select"
+                    value={targetStatus}
+                    onChange={(e) => setTargetStatus(e.target.value)}
+                  >
+                    {WORKFLOW_STAGES.map((s) => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
+                </div>
+                {(targetStatus === 'Resolved' || targetStatus === 'Closed') && (
+                  <div className="form-group">
+                    <label className="form-label">Resolution Summary</label>
+                    <textarea
+                      className="form-textarea"
+                      rows="2"
+                      placeholder="Explain fix..."
+                      value={resolutionSummary}
+                      onChange={(e) => setResolutionSummary(e.target.value)}
+                    />
+                  </div>
+                )}
+                <div className="form-group">
+                  <label className="form-label">Transition Comment</label>
+                  <textarea
+                    className="form-textarea"
+                    rows="2"
+                    placeholder="Audit reason..."
+                    value={statusComment}
+                    onChange={(e) => setStatusComment(e.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={() => setStatusModalOpen(false)}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn btn-primary">
+                  Save Transition
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

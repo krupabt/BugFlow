@@ -1,317 +1,445 @@
-import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import {
+  Users,
+  FolderGit2,
   Bug,
-  AlertTriangle,
+  AlertCircle,
   Clock,
   CheckCircle2,
-  Flame,
-  UserCheck,
-  FolderGit2,
-  ArrowUpRight,
-  Sparkles,
-  RefreshCw,
+  Activity,
+  Layers,
+  Plus,
+  ArrowRight,
+  TrendingUp,
+  Shield,
+  FileCheck2
 } from 'lucide-react';
-import {
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  Legend,
-} from 'recharts';
-import Header from '../components/Header';
 import { api } from '../api';
 import { useAuth } from '../context/AuthContext';
 
-const STATUS_COLORS = {
-  Open: '#3b82f6',
-  'In Progress': '#f59e0b',
-  Resolved: '#10b981',
-  Closed: '#64748b',
-};
-
-const SEVERITY_COLORS = {
-  Critical: '#ef4444',
-  High: '#f97316',
-  Medium: '#eab308',
-  Low: '#22c55e',
-};
-
 export default function Dashboard() {
   const { user } = useAuth();
-  const [stats, setStats] = useState(null);
-  const [activity, setActivity] = useState([]);
+  const navigate = useNavigate();
+  const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [recentActivity, setRecentActivity] = useState([]);
+  
+  const role = user?.role || 'Developer';
 
-  const loadData = async () => {
+  const loadDashboard = async () => {
     setLoading(true);
     setError('');
     try {
-      const [statsRes, activityRes] = await Promise.all([
-        api.getDashboardStats(user?.id),
-        api.getRecentActivity(),
-      ]);
-      setStats(statsRes);
-      setActivity(activityRes);
+      const stats = await api.getDashboardStats(role, user?.id);
+      setData(stats);
+      const activity = await api.getRecentActivity();
+      setRecentActivity(activity);
     } catch (err) {
-      console.warn('Dashboard fetch error:', err);
-      setError('Unable to load live PostgreSQL database metrics. Please verify that the Flask backend and PostgreSQL service are running.');
+      setError(err.message || 'Failed to load dashboard data');
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadData();
-  }, [user]);
+    loadDashboard();
+  }, [role, user?.id]);
 
-  const totals = stats?.totals || {
-    total_issues: 0,
-    open_issues: 0,
-    in_progress_issues: 0,
-    resolved_issues: 0,
-    closed_issues: 0,
-    critical_issues: 0,
-    my_assigned: 0,
-    total_projects: 0,
+  if (loading) {
+    return (
+      <div className="loading-container">
+        <div className="spinner"></div>
+        <p>Loading real-time {role} dashboard...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="toast-notice toast-error">
+        <AlertCircle size={18} />
+        <span>{error}</span>
+      </div>
+    );
+  }
+
+  const getCardIcon = (type) => {
+    switch (type) {
+      case 'users': return <Users size={18} />;
+      case 'projects': return <FolderGit2 size={18} />;
+      case 'open': return <AlertCircle size={18} />;
+      case 'progress': return <Clock size={18} />;
+      case 'resolved': return <CheckCircle2 size={18} />;
+      case 'closed': return <Shield size={18} />;
+      case 'testing': return <FileCheck2 size={18} />;
+      default: return <Bug size={18} />;
+    }
   };
-
-  const statusChartData = stats?.charts?.by_status || [];
-  const severityChartData = stats?.charts?.by_severity || [];
-  const projectChartData = stats?.charts?.by_project || [];
 
   return (
     <div>
-      <Header title="Engineering Defect Dashboard" />
-
-      <div className="content-body">
-        {/* Banner / Welcome */}
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: '24px',
-            flexWrap: 'wrap',
-            gap: '12px',
-          }}
-        >
-          <div>
-            <h2 style={{ fontSize: '1.4rem', fontWeight: '700', color: '#0f172a' }}>
-              Welcome, {user?.full_name || user?.username || 'Engineer'}
-            </h2>
-            <p style={{ color: '#64748b', fontSize: '0.9rem', marginTop: '4px' }}>
-              Live defect metrics and issue resolution tracking powered by PostgreSQL.
-            </p>
-          </div>
-
-          <div style={{ display: 'flex', gap: '10px' }}>
-            <Link to="/assistant" className="btn btn-secondary">
-              <Sparkles size={16} color="#2563eb" />
-              <span>Resolution Assistant</span>
-            </Link>
-            <button className="btn btn-secondary" onClick={loadData} title="Refresh Live Data">
-              <RefreshCw size={15} />
+      {/* Top Header */}
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">{role} Dashboard</h1>
+          <p className="page-subtitle">
+            Welcome back, {user?.name}! Live workspace metrics connected to PostgreSQL.
+          </p>
+        </div>
+        <div className="header-actions">
+          {(role === 'Admin' || role === 'Project Manager') && (
+            <button className="btn btn-primary" onClick={() => navigate('/issues?action=create')}>
+              <Plus size={16} />
+              <span>Create Issue</span>
             </button>
-          </div>
+          )}
+          {role === 'Tester' && (
+            <button className="btn btn-primary" onClick={() => navigate('/issues?action=create')}>
+              <Plus size={16} />
+              <span>Report Bug</span>
+            </button>
+          )}
+          {role === 'Admin' && (
+            <button className="btn btn-secondary" onClick={() => navigate('/users')}>
+              <Users size={16} />
+              <span>Manage Users</span>
+            </button>
+          )}
         </div>
+      </div>
 
-        {error && (
-          <div className="alert alert-error">
-            <AlertTriangle size={18} />
-            <div>
-              <strong>Database Notice:</strong> {error}
+      {/* 4 Standard Stat Cards */}
+      <div className="stat-grid">
+        {(data?.cards || []).map((card, idx) => (
+          <div className="stat-card" key={idx}>
+            <div className="stat-header">
+              <span className="stat-title">{card.title}</span>
+              <div className={`stat-icon ${card.type}`}>
+                {getCardIcon(card.type)}
+              </div>
+            </div>
+            <div className="stat-value">{card.value}</div>
+            <div className="stat-trend">
+              <TrendingUp size={14} color="#16A34A" />
+              <span>{card.trend}</span>
             </div>
           </div>
-        )}
+        ))}
+      </div>
 
-        {/* 6 Top Metric Cards */}
-        <div className="stat-grid">
-          {/* Total Issues */}
-          <div className="stat-card">
-            <div className="stat-icon-wrapper" style={{ backgroundColor: '#eff6ff', color: '#2563eb' }}>
-              <Bug size={24} />
+      {/* ---------------------------------------------------- */}
+      {/* ADMIN DASHBOARD SPECIFIC SECTIONS                   */}
+      {/* ---------------------------------------------------- */}
+      {role === 'Admin' && (
+        <>
+          <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: '24px', marginBottom: '24px' }}>
+            {/* Status Distribution */}
+            <div className="card">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <h2 style={{ fontSize: '1rem', fontWeight: 700 }}>Issue Status Distribution</h2>
+                <Link to="/reports" style={{ fontSize: '0.82rem', color: '#6754E8', fontWeight: 600, textDecoration: 'none' }}>
+                  Full Analytics →
+                </Link>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {(data?.status_distribution || []).map((s) => {
+                  const total = data?.totals?.total_issues || 1;
+                  const pct = Math.round((s.count / total) * 100);
+                  return (
+                    <div key={s.name}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: '4px' }}>
+                        <span style={{ fontWeight: 600 }}>{s.name}</span>
+                        <span style={{ color: '#74748B' }}>{s.count} issues ({pct}%)</span>
+                      </div>
+                      <div style={{ height: '7px', background: '#F1F3F9', borderRadius: '4px', overflow: 'hidden' }}>
+                        <div
+                          style={{
+                            height: '100%',
+                            width: `${pct}%`,
+                            background: s.name === 'Resolved' || s.name === 'Closed' ? '#16A34A' : (s.name === 'In Progress' ? '#F59E0B' : '#6754E8'),
+                            borderRadius: '4px'
+                          }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-            <div>
-              <div className="stat-number">{totals.total_issues}</div>
-              <div className="stat-label">Total Defects</div>
-            </div>
-          </div>
 
-          {/* Open Issues */}
-          <div className="stat-card">
-            <div className="stat-icon-wrapper" style={{ backgroundColor: '#eff6ff', color: '#1d4ed8' }}>
-              <AlertTriangle size={24} />
-            </div>
-            <div>
-              <div className="stat-number">{totals.open_issues}</div>
-              <div className="stat-label">Open Issues</div>
-            </div>
-          </div>
-
-          {/* In Progress */}
-          <div className="stat-card">
-            <div className="stat-icon-wrapper" style={{ backgroundColor: '#fef3c7', color: '#b45309' }}>
-              <Clock size={24} />
-            </div>
-            <div>
-              <div className="stat-number">{totals.in_progress_issues}</div>
-              <div className="stat-label">In Progress</div>
-            </div>
-          </div>
-
-          {/* Resolved & Closed */}
-          <div className="stat-card">
-            <div className="stat-icon-wrapper" style={{ backgroundColor: '#ecfdf5', color: '#047857' }}>
-              <CheckCircle2 size={24} />
-            </div>
-            <div>
-              <div className="stat-number">{totals.resolved_issues + totals.closed_issues}</div>
-              <div className="stat-label">Resolved / Closed</div>
-            </div>
-          </div>
-
-          {/* Critical & High */}
-          <div className="stat-card">
-            <div className="stat-icon-wrapper" style={{ backgroundColor: '#fef2f2', color: '#b91c1c' }}>
-              <Flame size={24} />
-            </div>
-            <div>
-              <div className="stat-number">{totals.critical_issues}</div>
-              <div className="stat-label">Critical & High Priority</div>
-            </div>
-          </div>
-
-          {/* My Assigned */}
-          <div className="stat-card">
-            <div className="stat-icon-wrapper" style={{ backgroundColor: '#f5f3ff', color: '#7c3aed' }}>
-              <UserCheck size={24} />
-            </div>
-            <div>
-              <div className="stat-number">{totals.my_assigned}</div>
-              <div className="stat-label">Assigned to You</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Charts Grid */}
-        <div className="charts-grid">
-          {/* Status Breakdown Pie Chart */}
-          <div className="chart-card">
-            <h3 className="chart-title">Issues by Status</h3>
-            <div style={{ height: 260 }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={statusChartData}
-                    dataKey="count"
-                    nameKey="name"
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={55}
-                    outerRadius={85}
-                    paddingAngle={4}
-                  >
-                    {statusChartData.map((entry, index) => (
-                      <Cell
-                        key={`cell-${index}`}
-                        fill={STATUS_COLORS[entry.name] || '#94a3b8'}
-                      />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
+            {/* Recent Users */}
+            <div className="card">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <h2 style={{ fontSize: '1rem', fontWeight: 700 }}>Recent Users</h2>
+                <Link to="/users" style={{ fontSize: '0.82rem', color: '#6754E8', fontWeight: 600, textDecoration: 'none' }}>
+                  All Users →
+                </Link>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {(data?.recent_users || []).map((u) => (
+                  <div key={u.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #F1F3F9' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <div className="user-avatar" style={{ width: '30px', height: '30px', fontSize: '0.75rem' }}>
+                        {u.name[0]}
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '0.82rem', fontWeight: 600 }}>{u.name}</div>
+                        <div style={{ fontSize: '0.72rem', color: '#74748B' }}>{u.email}</div>
+                      </div>
+                    </div>
+                    <span className="user-role-badge">{u.role}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
 
-          {/* Severity Breakdown Bar Chart */}
-          <div className="chart-card">
-            <h3 className="chart-title">Issues by Severity</h3>
-            <div style={{ height: 260 }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={severityChartData}>
-                  <XAxis dataKey="severity" />
-                  <YAxis allowDecimals={false} />
-                  <Tooltip />
-                  <Bar dataKey="count" radius={[4, 4, 0, 0]}>
-                    {severityChartData.map((entry, index) => (
-                      <Cell
-                        key={`cell-sev-${index}`}
-                        fill={SEVERITY_COLORS[entry.severity] || '#3b82f6'}
-                      />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
+          {/* Project Overview Table */}
+          <div className="card">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h2 style={{ fontSize: '1rem', fontWeight: 700 }}>Project Overview</h2>
+              <Link to="/projects" style={{ fontSize: '0.82rem', color: '#6754E8', fontWeight: 600, textDecoration: 'none' }}>
+                View All Projects →
+              </Link>
             </div>
-          </div>
-        </div>
-
-        {/* Recent Activity Table */}
-        <div className="card" style={{ marginTop: '24px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-            <h3 style={{ fontSize: '1.05rem', fontWeight: '600' }}>Recent Defect Status Transitions</h3>
-            <Link to="/issues" className="btn btn-secondary btn-sm">
-              <span>View All Issues</span>
-              <ArrowUpRight size={14} />
-            </Link>
-          </div>
-
-          {activity.length === 0 ? (
-            <div style={{ padding: '32px', textAlign: 'center', color: '#64748b' }}>
-              No recent status transitions recorded yet. Create or update an issue to see the audit log.
-            </div>
-          ) : (
             <div className="table-container">
               <table className="table">
                 <thead>
                   <tr>
-                    <th>Ticket</th>
-                    <th>Summary</th>
-                    <th>Transition</th>
-                    <th>Note / Comment</th>
-                    <th>Updated By</th>
-                    <th>Timestamp</th>
+                    <th>Project</th>
+                    <th>Issues Count</th>
+                    <th>Status</th>
+                    <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {activity.map((item) => (
-                    <tr key={item.id}>
-                      <td style={{ fontWeight: '600', color: '#2563eb' }}>
-                        <Link to={`/issues/${item.issue_id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-                          {item.issue_key}
-                        </Link>
-                      </td>
-                      <td style={{ maxWidth: '280px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {item.issue_title}
-                      </td>
+                  {(data?.project_issue_counts || []).slice(0, 5).map((p, idx) => (
+                    <tr key={idx}>
+                      <td style={{ fontWeight: 600 }}>{p.project}</td>
+                      <td>{p.count} recorded issues</td>
+                      <td><span className="badge badge-resolved">ACTIVE</span></td>
                       <td>
-                        <span style={{ fontSize: '0.85rem' }}>
-                          <span style={{ color: '#64748b' }}>{item.old_status || 'New'}</span>
-                          {' → '}
-                          <span style={{ fontWeight: '600', color: '#0f172a' }}>{item.new_status}</span>
-                        </span>
-                      </td>
-                      <td style={{ color: '#64748b', fontSize: '0.84rem' }}>{item.comment || '-'}</td>
-                      <td>{item.changed_by}</td>
-                      <td style={{ fontSize: '0.8rem', color: '#64748b' }}>
-                        {item.created_at ? new Date(item.created_at).toLocaleString() : '-'}
+                        <button className="btn btn-secondary" style={{ padding: '4px 10px', fontSize: '0.78rem' }} onClick={() => navigate('/projects')}>
+                          Manage
+                        </button>
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-          )}
+          </div>
+        </>
+      )}
+
+      {/* ---------------------------------------------------- */}
+      {/* PROJECT MANAGER DASHBOARD SPECIFIC SECTIONS          */}
+      {/* ---------------------------------------------------- */}
+      {role === 'Project Manager' && (
+        <>
+          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '24px', marginBottom: '24px' }}>
+            {/* My Projects */}
+            <div className="card">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <h2 style={{ fontSize: '1rem', fontWeight: 700 }}>My Managed Projects</h2>
+                <Link to="/projects" style={{ fontSize: '0.82rem', color: '#6754E8', fontWeight: 600, textDecoration: 'none' }}>
+                  View All →
+                </Link>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                {(data?.my_projects || []).map((p) => (
+                  <div key={p.id} style={{ padding: '12px', border: '1px solid #E9E7F0', borderRadius: '8px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                      <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>{p.name}</span>
+                      <span className="badge badge-open">{p.lifecycle_status}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: '#74748B', marginBottom: '8px' }}>
+                      <span>Total: {p.stats?.total_issues || 0} issues</span>
+                      <span>Progress: {p.stats?.progress_percentage || 0}%</span>
+                    </div>
+                    <div style={{ height: '6px', background: '#F1F3F9', borderRadius: '3px', overflow: 'hidden' }}>
+                      <div style={{ height: '100%', width: `${p.stats?.progress_percentage || 0}%`, background: '#6754E8' }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Sprint Overview */}
+            <div className="card">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <h2 style={{ fontSize: '1rem', fontWeight: 700 }}>Sprint Overview</h2>
+                <Link to="/sprints" style={{ fontSize: '0.82rem', color: '#6754E8', fontWeight: 600, textDecoration: 'none' }}>
+                  Manage Sprints →
+                </Link>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {(data?.sprints_overview || []).map((s) => (
+                  <div key={s.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #F1F3F9' }}>
+                    <div>
+                      <div style={{ fontSize: '0.84rem', fontWeight: 600 }}>{s.sprint_name}</div>
+                      <div style={{ fontSize: '0.72rem', color: '#74748B' }}>{s.start_date} to {s.end_date}</div>
+                    </div>
+                    <span className={`badge badge-${s.status === 'COMPLETED' ? 'resolved' : (s.status === 'ACTIVE' ? 'progress' : 'open')}`}>
+                      {s.status}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* ---------------------------------------------------- */}
+      {/* DEVELOPER DASHBOARD SPECIFIC SECTIONS                */}
+      {/* ---------------------------------------------------- */}
+      {role === 'Developer' && (
+        <div className="card">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <h2 style={{ fontSize: '1rem', fontWeight: 700 }}>Your Assigned Issues</h2>
+            <Link to="/issues?assigned_to=my" style={{ fontSize: '0.82rem', color: '#6754E8', fontWeight: 600, textDecoration: 'none' }}>
+              View All Assigned Issues →
+            </Link>
+          </div>
+          <div className="table-container">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Issue ID</th>
+                  <th>Title</th>
+                  <th>Priority</th>
+                  <th>Status</th>
+                  <th>Project</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(data?.assigned_issues_list || []).length === 0 ? (
+                  <tr>
+                    <td colSpan="6" style={{ textAlign: 'center', padding: '32px', color: '#74748B' }}>
+                      No active issues currently assigned to you. Check All Issues to pick up work.
+                    </td>
+                  </tr>
+                ) : (
+                  (data?.assigned_issues_list || []).map((issue) => (
+                    <tr key={issue.id}>
+                      <td style={{ fontWeight: 700, color: '#6754E8' }}>{issue.id}</td>
+                      <td style={{ fontWeight: 600, maxWidth: '280px' }}>{issue.title}</td>
+                      <td>
+                        <span className={`badge badge-${issue.priority.toLowerCase()}`}>
+                          {issue.priority}
+                        </span>
+                      </td>
+                      <td>
+                        <span className={`badge badge-${issue.status.toLowerCase().replace(' ', '-')}`}>
+                          {issue.status}
+                        </span>
+                      </td>
+                      <td>{issue.project_name}</td>
+                      <td>
+                        <button
+                          className="btn btn-secondary"
+                          style={{ padding: '4px 10px', fontSize: '0.78rem' }}
+                          onClick={() => navigate(`/issues/${issue.id}`)}
+                        >
+                          Details & Update
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
+      )}
+
+      {/* ---------------------------------------------------- */}
+      {/* TESTER DASHBOARD SPECIFIC SECTIONS                   */}
+      {/* ---------------------------------------------------- */}
+      {role === 'Tester' && (
+        <div className="card">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <h2 style={{ fontSize: '1rem', fontWeight: 700 }}>Issues Awaiting Verification / Testing</h2>
+            <Link to="/issues?status=Testing" style={{ fontSize: '0.82rem', color: '#6754E8', fontWeight: 600, textDecoration: 'none' }}>
+              View All In Testing →
+            </Link>
+          </div>
+          <div className="table-container">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Issue ID</th>
+                  <th>Title</th>
+                  <th>Severity</th>
+                  <th>Assigned Dev</th>
+                  <th>Project</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(data?.awaiting_testing_list || []).length === 0 ? (
+                  <tr>
+                    <td colSpan="6" style={{ textAlign: 'center', padding: '32px', color: '#74748B' }}>
+                      No issues currently in Testing queue.
+                    </td>
+                  </tr>
+                ) : (
+                  (data?.awaiting_testing_list || []).map((issue) => (
+                    <tr key={issue.id}>
+                      <td style={{ fontWeight: 700, color: '#6754E8' }}>{issue.id}</td>
+                      <td style={{ fontWeight: 600, maxWidth: '280px' }}>{issue.title}</td>
+                      <td>
+                        <span className={`badge badge-${issue.severity.toLowerCase()}`}>
+                          {issue.severity}
+                        </span>
+                      </td>
+                      <td>{issue.assignee_name}</td>
+                      <td>{issue.project_name}</td>
+                      <td>
+                        <button
+                          className="btn btn-primary"
+                          style={{ padding: '4px 10px', fontSize: '0.78rem' }}
+                          onClick={() => navigate(`/issues/${issue.id}`)}
+                        >
+                          Verify Fix
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Recent Activity Timeline (Common to all roles) */}
+      <div className="card" style={{ marginTop: '24px' }}>
+        <h2 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '16px' }}>Recent Audit History & Activity</h2>
+        {recentActivity.length === 0 ? (
+          <p style={{ color: '#74748B', fontSize: '0.84rem' }}>No recent status transitions recorded.</p>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {recentActivity.slice(0, 6).map((item) => (
+              <div key={item.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #F1F3F9', fontSize: '0.84rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <Activity size={16} color="#6754E8" />
+                  <span>
+                    <strong>{item.changed_by}</strong> updated <strong>{item.issue_id}</strong>: {item.old_status || 'New'} → <strong>{item.new_status}</strong>
+                    {item.comment && <span style={{ color: '#74748B' }}> ({item.comment})</span>}
+                  </span>
+                </div>
+                <span style={{ fontSize: '0.75rem', color: '#74748B' }}>
+                  {item.created_at ? new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Recently'}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1,34 +1,36 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Bug, AlertCircle, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export default function Register() {
   const [formData, setFormData] = useState({
-    username: '',
+    name: '',
     email: '',
     password: '',
-    full_name: '',
-    role: 'Developer',
+    role: 'Developer'
   });
-  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+
   const { register } = useAuth();
   const navigate = useNavigate();
 
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!formData.name || !formData.email || !formData.password) {
+      setError('Please fill in all required fields.');
+      return;
+    }
     setError('');
     setLoading(true);
     try {
       await register(formData);
-      navigate('/');
+      setSuccess('Account created successfully! Redirecting...');
+      setTimeout(() => navigate('/'), 1200);
     } catch (err) {
-      setError(err.message || 'Registration failed. Please try again.');
+      setError(err.message || 'Registration failed. Email may already be in use.');
     } finally {
       setLoading(false);
     }
@@ -36,99 +38,94 @@ export default function Register() {
 
   return (
     <div className="auth-wrapper">
-      <div className="auth-card" style={{ maxWidth: '480px' }}>
-        <div className="auth-header">
-          <div className="auth-brand">
-            <div className="brand-icon">
-              <Bug size={24} />
-            </div>
-            <span className="auth-brand-text">BugFlow</span>
+      <div className="auth-box">
+        {/* Brand */}
+        <div className="auth-brand">
+          <div className="brand-icon">
+            <Bug size={24} />
           </div>
-          <h2 className="auth-title">Create an Account</h2>
-          <p className="auth-subtitle">Join your engineering defect management team</p>
+          <div>
+            <div className="brand-title">BugFlow</div>
+            <div className="brand-tagline">Create an Account</div>
+          </div>
         </div>
 
+        <h1 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '6px' }}>Sign up for BugFlow</h1>
+        <p style={{ fontSize: '0.84rem', color: '#74748B', marginBottom: '20px' }}>
+          Join your team to track, resolve, and verify software defects.
+        </p>
+
         {error && (
-          <div className="alert alert-error">
+          <div className="toast-notice toast-error" style={{ padding: '10px 12px', fontSize: '0.82rem' }}>
             <AlertCircle size={16} />
             <span>{error}</span>
           </div>
         )}
 
+        {success && (
+          <div className="toast-notice toast-success" style={{ padding: '10px 12px', fontSize: '0.82rem' }}>
+            <CheckCircle2 size={16} />
+            <span>{success}</span>
+          </div>
+        )}
+
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label className="form-label">Full Name</label>
+            <label className="form-label">Full Name *</label>
             <input
               type="text"
-              name="full_name"
               className="form-input"
-              placeholder="e.g. Alex Johnson"
-              value={formData.full_name}
-              onChange={handleChange}
+              placeholder="e.g. John Doe"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               required
             />
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
-            <div className="form-group">
-              <label className="form-label">Username</label>
-              <input
-                type="text"
-                name="username"
-                className="form-input"
-                placeholder="e.g. alexj"
-                value={formData.username}
-                onChange={handleChange}
-                required
-              />
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">Role</label>
-              <select
-                name="role"
-                className="form-select"
-                value={formData.role}
-                onChange={handleChange}
-              >
-                <option value="Developer">Developer</option>
-                <option value="Reporter">Reporter (QA / Tester)</option>
-                <option value="Admin">Administrator</option>
-              </select>
-            </div>
-          </div>
-
           <div className="form-group">
-            <label className="form-label">Email Address</label>
+            <label className="form-label">Email Address *</label>
             <input
               type="email"
-              name="email"
               className="form-input"
-              placeholder="alex@company.com"
+              placeholder="e.g. john@example.org"
               value={formData.email}
-              onChange={handleChange}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               required
             />
           </div>
 
           <div className="form-group">
-            <label className="form-label">Password</label>
+            <label className="form-label">Password *</label>
             <input
               type="password"
-              name="password"
               className="form-input"
-              placeholder="Minimum 6 characters"
+              placeholder="••••••••••••"
               value={formData.password}
-              onChange={handleChange}
+              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
               required
-              minLength={6}
             />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Role *</label>
+            <select
+              className="form-select"
+              value={formData.role}
+              onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+            >
+              <option value="Developer">Developer</option>
+              <option value="Tester">Tester</option>
+              <option value="Project Manager">Project Manager</option>
+            </select>
+            <p style={{ fontSize: '0.72rem', color: '#74748B', marginTop: '4px' }}>
+              Note: Administrator accounts can only be provisioned by existing Admins.
+            </p>
           </div>
 
           <button
             type="submit"
             className="btn btn-primary"
-            style={{ width: '100%', padding: '10px', marginTop: '8px' }}
+            style={{ width: '100%', marginTop: '12px', padding: '11px' }}
             disabled={loading}
           >
             {loading ? 'Creating account...' : 'Create Account'}
@@ -136,9 +133,9 @@ export default function Register() {
           </button>
         </form>
 
-        <div style={{ marginTop: '20px', textAlign: 'center', fontSize: '0.85rem', color: '#64748b' }}>
+        <div style={{ marginTop: '20px', textAlign: 'center', fontSize: '0.82rem', color: '#74748B' }}>
           Already have an account?{' '}
-          <Link to="/login" style={{ color: '#2563eb', fontWeight: '600', textDecoration: 'none' }}>
+          <Link to="/login" style={{ color: '#6754E8', fontWeight: 600, textDecoration: 'none' }}>
             Sign in
           </Link>
         </div>

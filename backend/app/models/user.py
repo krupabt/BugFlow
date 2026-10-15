@@ -6,11 +6,12 @@ from app.extensions import db
 class User(db.Model):
     __tablename__ = "users"
     
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.String(50), primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     email = db.Column(db.String(150), unique=True, nullable=False, index=True)
     password_hash = db.Column(db.String(255), nullable=False)
     role = db.Column(db.String(30), nullable=False, default="Developer")
+    active = db.Column(db.Boolean, default=True, nullable=False)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=True)
     
     # Compatibility properties
@@ -33,7 +34,7 @@ class User(db.Model):
             try:
                 return bcrypt.checkpw(password.encode("utf-8"), self.password_hash.encode("utf-8"))
             except Exception:
-                return False
+                pass
         # Werkzeug hash (scrypt, pbkdf2)
         try:
             return check_password_hash(self.password_hash, password)
@@ -42,14 +43,15 @@ class User(db.Model):
         
     def to_dict(self):
         return {
-            "id": self.id,
+            "id": str(self.id),
             "name": self.name,
             "username": self.username,
             "email": self.email,
             "role": self.role,
+            "active": self.active,
             "full_name": self.name,
             "created_at": self.created_at.isoformat() if self.created_at else None
         }
         
     def __repr__(self):
-        return f"<User {self.email} ({self.role})>"
+        return f"<User {self.id}: {self.email} ({self.role})>"

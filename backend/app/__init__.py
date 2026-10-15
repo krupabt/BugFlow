@@ -27,15 +27,21 @@ def create_app(config_class=Config):
     
     # Register API blueprints
     from app.routes.auth import auth_bp
+    from app.routes.users import users_bp
     from app.routes.issues import issues_bp
     from app.routes.projects import projects_bp
+    from app.routes.sprints import sprints_bp
     from app.routes.dashboard import dashboard_bp
+    from app.routes.reports import reports_bp
     from app.routes.assistant import assistant_bp
     
     app.register_blueprint(auth_bp)
+    app.register_blueprint(users_bp)
     app.register_blueprint(issues_bp)
     app.register_blueprint(projects_bp)
+    app.register_blueprint(sprints_bp)
     app.register_blueprint(dashboard_bp)
+    app.register_blueprint(reports_bp)
     app.register_blueprint(assistant_bp)
     
     # Health check route
@@ -46,6 +52,14 @@ def create_app(config_class=Config):
             "service": "BugFlow API",
             "version": "1.0.0"
         }), 200
+
+    # Ensure dataset is loaded on first startup
+    with app.app_context():
+        try:
+            from app.db_importer import ensure_dataset_imported
+            ensure_dataset_imported()
+        except Exception as e:
+            app.logger.warning(f"Startup dataset check notice: {e}")
 
     # Global JSON error handlers
     @app.errorhandler(400)

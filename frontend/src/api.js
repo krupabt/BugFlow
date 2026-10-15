@@ -28,10 +28,10 @@ export const api = {
   checkHealth: () => request('/health'),
 
   // Auth
-  login: (username, password) =>
+  login: (email, password) =>
     request('/auth/login', {
       method: 'POST',
-      body: JSON.stringify({ username, password }),
+      body: JSON.stringify({ email, password }),
     }),
   register: (userData) =>
     request('/auth/register', {
@@ -40,9 +40,42 @@ export const api = {
     }),
   getMe: () => request('/auth/me'),
 
+  // Users Management (Admin)
+  getUsers: (params = {}) => {
+    const query = new URLSearchParams();
+    Object.entries(params).forEach(([k, v]) => {
+      if (v !== undefined && v !== null && v !== '') query.append(k, v);
+    });
+    return request(`/users?${query.toString()}`);
+  },
+  getUser: (id) => request(`/users/${id}`),
+  createUser: (userData) =>
+    request('/users', {
+      method: 'POST',
+      body: JSON.stringify(userData),
+    }),
+  updateUser: (id, userData) =>
+    request(`/users/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(userData),
+    }),
+  toggleUserStatus: (id, active) =>
+    request(`/users/${id}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ active }),
+    }),
+  deleteUser: (id) =>
+    request(`/users/${id}`, {
+      method: 'DELETE',
+    }),
+
   // Dashboard
-  getDashboardStats: (userId) =>
-    request(`/dashboard/stats${userId ? `?user_id=${userId}` : ''}`),
+  getDashboardStats: (role, userId) => {
+    const query = new URLSearchParams();
+    if (role) query.append('role', role);
+    if (userId) query.append('user_id', userId);
+    return request(`/dashboard/stats?${query.toString()}`);
+  },
   getRecentActivity: () => request('/dashboard/recent-activity'),
 
   // Issues
@@ -66,10 +99,15 @@ export const api = {
       method: 'PUT',
       body: JSON.stringify(issueData),
     }),
-  updateStatus: (id, status, comment, resolution) =>
+  assignIssue: (id, assigned_to) =>
+    request(`/issues/${id}/assign`, {
+      method: 'PATCH',
+      body: JSON.stringify({ assigned_to }),
+    }),
+  updateStatus: (id, status, comment, resolution_summary, root_cause) =>
     request(`/issues/${id}/status`, {
       method: 'PATCH',
-      body: JSON.stringify({ status, comment, resolution }),
+      body: JSON.stringify({ status, comment, resolution_summary, root_cause }),
     }),
   addComment: (id, content) =>
     request(`/issues/${id}/comments`, {
@@ -82,11 +120,22 @@ export const api = {
     }),
 
   // Projects
-  getProjects: () => request('/projects'),
+  getProjects: (params = {}) => {
+    const query = new URLSearchParams();
+    Object.entries(params).forEach(([k, v]) => {
+      if (v !== undefined && v !== null && v !== '') query.append(k, v);
+    });
+    return request(`/projects?${query.toString()}`);
+  },
   getProject: (id) => request(`/projects/${id}`),
   createProject: (projectData) =>
     request('/projects', {
       method: 'POST',
+      body: JSON.stringify(projectData),
+    }),
+  updateProject: (id, projectData) =>
+    request(`/projects/${id}`, {
+      method: 'PUT',
       body: JSON.stringify(projectData),
     }),
   assignProjectMember: (projectId, userId) =>
@@ -95,10 +144,29 @@ export const api = {
       body: JSON.stringify({ user_id: userId }),
     }),
 
-  // Resolution Assistant (TF-IDF Similarity)
-  getSimilarIssues: (title, description, top_k = 3) =>
-    request('/assistant/similar', {
+  // Sprints
+  getSprints: (params = {}) => {
+    const query = new URLSearchParams();
+    Object.entries(params).forEach(([k, v]) => {
+      if (v !== undefined && v !== null && v !== '') query.append(k, v);
+    });
+    return request(`/sprints?${query.toString()}`);
+  },
+  getSprint: (id) => request(`/sprints/${id}`),
+  createSprint: (sprintData) =>
+    request('/sprints', {
       method: 'POST',
-      body: JSON.stringify({ title, description, top_k }),
+      body: JSON.stringify(sprintData),
     }),
+  updateSprintStatus: (id, status) =>
+    request(`/sprints/${id}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    }),
+
+  // Reports
+  getReports: (projectId = null) => {
+    const query = projectId && projectId !== 'All' ? `?project_id=${projectId}` : '';
+    return request(`/reports${query}`);
+  },
 };
