@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from app.services.recommender import recommender
+from services.recommender import recommender
 
 assistant_bp = Blueprint("assistant", __name__, url_prefix="/api/assistant")
 

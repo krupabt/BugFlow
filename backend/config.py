@@ -4,8 +4,10 @@ from datetime import timedelta
 from dotenv import load_dotenv
 
 # Load .env file from backend directory or parent directories
-basedir = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
-load_dotenv(os.path.join(basedir, ".env"))
+current_dir = os.path.abspath(os.path.dirname(__file__))
+parent_dir = os.path.dirname(current_dir)
+load_dotenv(os.path.join(current_dir, ".env"))
+load_dotenv(os.path.join(parent_dir, ".env"))
 
 class Config:
     # Flask Security

@@ -23,6 +23,7 @@ export default function Sidebar() {
   const isDev = normRole === 'DEVELOPER';
   const isTester = normRole === 'TESTER';
   const displayRole = user?.role_display || (isAdmin ? 'Admin' : isPM ? 'Project Manager' : isDev ? 'Developer' : isTester ? 'Tester' : (user?.role || 'Developer'));
+  const dashboardPath = isPM ? '/manager/dashboard' : isDev ? '/developer/dashboard' : isTester ? '/tester/dashboard' : '/admin/dashboard';
 
   const handleLogout = () => {
     logout();
@@ -46,9 +47,8 @@ export default function Sidebar() {
       <nav className="sidebar-nav">
         {/* Common to all */}
         <NavLink
-          to="/"
+          to={dashboardPath}
           className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
-          end
         >
           <LayoutDashboard size={18} />
           <span>Dashboard</span>

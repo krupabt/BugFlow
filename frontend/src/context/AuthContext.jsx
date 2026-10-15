@@ -3,6 +3,22 @@ import { api } from '../api';
 
 const AuthContext = createContext(null);
 
+export function getRoleDashboardPath(role) {
+  const norm = (role || '').toUpperCase().replace(/ /g, '_');
+  switch (norm) {
+    case 'ADMIN':
+      return '/admin/dashboard';
+    case 'PROJECT_MANAGER':
+      return '/manager/dashboard';
+    case 'DEVELOPER':
+      return '/developer/dashboard';
+    case 'TESTER':
+      return '/tester/dashboard';
+    default:
+      return '/developer/dashboard';
+  }
+}
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(() => localStorage.getItem('bugflow_token'));
@@ -40,14 +56,19 @@ export function AuthProvider({ children }) {
     return res.user;
   };
 
-  const logout = () => {
+  const logout = async () => {
+    try {
+      await api.logout();
+    } catch {
+      // Ignore network errors on logout
+    }
     localStorage.removeItem('bugflow_token');
     setToken(null);
     setUser(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, token, loading, login, register, logout, getRoleDashboardPath }}>
       {children}
     </AuthContext.Provider>
   );

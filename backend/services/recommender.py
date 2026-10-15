@@ -2,7 +2,7 @@ import os
 import csv
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
-from app.models.issue import Issue
+from models.issue import Issue
 
 class ResolutionRecommender:
     def __init__(self):

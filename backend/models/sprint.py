@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from app.extensions import db
+from extensions import db
 
 class Sprint(db.Model):
     __tablename__ = "sprints"

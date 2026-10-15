@@ -39,6 +39,10 @@ export const api = {
       body: JSON.stringify(userData),
     }),
   getMe: () => request('/auth/me'),
+  logout: () =>
+    request('/auth/logout', {
+      method: 'POST',
+    }),
 
   // Users Management (Admin)
   getUsers: (params = {}) => {

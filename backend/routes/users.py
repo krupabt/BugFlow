@@ -1,8 +1,8 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 import sqlalchemy as sa
-from app.extensions import db
-from app.models.user import User
+from extensions import db
+from models.user import User
 
 users_bp = Blueprint("users", __name__, url_prefix="/api/users")
 

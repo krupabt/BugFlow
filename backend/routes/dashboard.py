@@ -1,12 +1,12 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 import sqlalchemy as sa
-from app.extensions import db
-from app.models.issue import Issue
-from app.models.project import Project
-from app.models.user import User
-from app.models.sprint import Sprint
-from app.models.history import IssueStatusHistory
+from extensions import db
+from models.issue import Issue
+from models.project import Project
+from models.user import User
+from models.sprint import Sprint
+from models.history import IssueStatusHistory
 
 dashboard_bp = Blueprint("dashboard", __name__, url_prefix="/api/dashboard")
 

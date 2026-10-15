@@ -3,7 +3,7 @@ import pandas as pd
 from datetime import datetime
 from werkzeug.security import generate_password_hash
 from sqlalchemy import text
-from app.extensions import db
+from extensions import db
 
 ROLE_INTERNAL_MAP = {
     'ADMIN': 'ADMIN',

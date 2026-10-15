@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from app.extensions import db
+from extensions import db
 
 project_members = db.Table(
     "project_members",
@@ -72,4 +72,4 @@ class Project(db.Model):
         return f"<Project {self.id}: {self.name}>"
 
 # Avoid circular import
-from app.models.issue import Issue
+from models.issue import Issue

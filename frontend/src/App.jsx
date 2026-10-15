@@ -1,6 +1,6 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider, useAuth } from './context/AuthContext';
+import { AuthProvider, useAuth, getRoleDashboardPath } from './context/AuthContext';
 import Sidebar from './components/Sidebar';
 import Dashboard from './pages/Dashboard';
 import Issues from './pages/Issues';
@@ -12,6 +12,23 @@ import Users from './pages/Users';
 import Settings from './pages/Settings';
 import Login from './pages/Login';
 import Register from './pages/Register';
+
+function RoleRoute({ allowedRoles, children }) {
+  const { user } = useAuth();
+  const userRole = (user?.role || '').toUpperCase().replace(/ /g, '_');
+  
+  if (!allowedRoles.includes(userRole)) {
+    const fallbackPath = getRoleDashboardPath(userRole);
+    return <Navigate to={fallbackPath} replace />;
+  }
+  return children;
+}
+
+function RoleRootRedirect() {
+  const { user } = useAuth();
+  const target = getRoleDashboardPath(user?.role);
+  return <Navigate to={target} replace />;
+}
 
 function ProtectedLayout() {
   const { user, token, loading } = useAuth();
@@ -34,7 +51,44 @@ function ProtectedLayout() {
       <Sidebar />
       <main className="main-content">
         <Routes>
-          <Route path="/" element={<Dashboard />} />
+          {/* Role Dashboard Routes */}
+          <Route
+            path="/admin/dashboard"
+            element={
+              <RoleRoute allowedRoles={['ADMIN']}>
+                <Dashboard />
+              </RoleRoute>
+            }
+          />
+          <Route
+            path="/manager/dashboard"
+            element={
+              <RoleRoute allowedRoles={['PROJECT_MANAGER']}>
+                <Dashboard />
+              </RoleRoute>
+            }
+          />
+          <Route
+            path="/developer/dashboard"
+            element={
+              <RoleRoute allowedRoles={['DEVELOPER']}>
+                <Dashboard />
+              </RoleRoute>
+            }
+          />
+          <Route
+            path="/tester/dashboard"
+            element={
+              <RoleRoute allowedRoles={['TESTER']}>
+                <Dashboard />
+              </RoleRoute>
+            }
+          />
+
+          {/* Root redirect to appropriate role dashboard */}
+          <Route path="/" element={<RoleRootRedirect />} />
+
+          {/* Feature Routes */}
           <Route path="/issues" element={<Issues />} />
           <Route path="/issues/:id" element={<IssueDetail />} />
           <Route path="/my-issues" element={<Issues />} />
@@ -46,7 +100,7 @@ function ProtectedLayout() {
           <Route path="/users" element={<Users />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/comments" element={<Issues />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<RoleRootRedirect />} />
         </Routes>
       </main>
     </div>

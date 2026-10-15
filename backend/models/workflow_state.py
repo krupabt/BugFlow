@@ -1,4 +1,4 @@
-from app.extensions import db
+from extensions import db
 
 class WorkflowState(db.Model):
     __tablename__ = "workflow_states"

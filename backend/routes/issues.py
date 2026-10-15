@@ -2,12 +2,12 @@ from datetime import datetime, timezone
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 import sqlalchemy as sa
-from app.extensions import db
-from app.models.issue import Issue
-from app.models.project import Project
-from app.models.user import User
-from app.models.comment import IssueComment
-from app.models.history import IssueStatusHistory
+from extensions import db
+from models.issue import Issue
+from models.project import Project
+from models.user import User
+from models.comment import IssueComment
+from models.history import IssueStatusHistory
 
 issues_bp = Blueprint("issues", __name__, url_prefix="/api/issues")
 

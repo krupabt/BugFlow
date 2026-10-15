@@ -844,48 +844,287 @@ body {
   border-radius: 2px;
 }
 
-/* Auth Pages */
-.auth-wrapper {
+/* ==========================================================================
+   Split-Screen Premium SaaS Authentication (Login & Register)
+   Theme: White + Violet (#6754E8)
+   ========================================================================== */
+
+.auth-split-wrapper {
   min-height: 100vh;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: var(--bg-main);
-  padding: 24px;
-}
-
-.auth-box {
   width: 100%;
-  max-width: 440px;
-  background: #FFFFFF;
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg);
-  padding: 36px 32px;
+  background-color: #F7F8FC;
 }
 
-.auth-brand {
+/* Left Hero Section */
+.auth-hero-panel {
+  flex: 0 0 480px;
+  background: #6754E8;
+  color: #FFFFFF;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 56px 48px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 4px 0 24px rgba(103, 84, 232, 0.15);
+}
+
+.auth-hero-panel::before {
+  content: '';
+  position: absolute;
+  top: -80px;
+  right: -80px;
+  width: 280px;
+  height: 280px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  pointer-events: none;
+}
+
+.auth-hero-panel::after {
+  content: '';
+  position: absolute;
+  bottom: -100px;
+  left: -80px;
+  width: 320px;
+  height: 320px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  pointer-events: none;
+}
+
+.auth-hero-brand {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 24px;
+  position: relative;
+  z-index: 2;
 }
 
-.demo-account-pills {
+.auth-hero-brand-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(8px);
+}
+
+.auth-hero-brand-name {
+  font-size: 1.4rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.auth-hero-center {
+  position: relative;
+  z-index: 2;
+  margin: 32px 0;
+}
+
+.auth-hero-title {
+  font-size: 2.15rem;
+  font-weight: 800;
+  line-height: 1.25;
+  margin-bottom: 16px;
+  letter-spacing: -0.02em;
+}
+
+.auth-hero-desc {
+  font-size: 0.95rem;
+  line-height: 1.6;
+  opacity: 0.92;
+  color: #EDE9FE;
+  margin-bottom: 32px;
+  max-width: 380px;
+}
+
+/* Subtle Workflow Illustration */
+.auth-workflow-timeline {
   display: flex;
   flex-direction: column;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  padding: 18px 20px;
+  backdrop-filter: blur(12px);
+}
+
+.workflow-step {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.82rem;
+  font-weight: 500;
+}
+
+.workflow-step-num {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #FFFFFF;
+  color: #6754E8;
+  font-size: 0.72rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.workflow-step-text {
+  color: #FFFFFF;
+}
+
+.auth-hero-footer {
+  position: relative;
+  z-index: 2;
+  font-size: 0.76rem;
+  color: rgba(255, 255, 255, 0.75);
+  display: flex;
+  align-items: center;
   gap: 8px;
-  margin-top: 20px;
-  padding-top: 16px;
-  border-top: 1px solid var(--border-color);
+}
+
+/* Right Form Section */
+.auth-form-panel {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px;
+  background-color: #F7F8FC;
+  min-height: 100vh;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 440px;
+  background: #FFFFFF;
+  border: 1px solid #E9E7F0;
+  border-radius: 16px;
+  padding: 36px 32px;
+  box-shadow: 0 6px 24px rgba(103, 84, 232, 0.06);
+}
+
+.auth-card-title {
+  font-size: 1.45rem;
+  font-weight: 700;
+  color: #24243B;
+  margin-bottom: 6px;
+  letter-spacing: -0.02em;
+}
+
+.auth-card-subtitle {
+  font-size: 0.85rem;
+  color: #74748B;
+  margin-bottom: 24px;
+  line-height: 1.5;
+}
+
+/* Form Input Enhancements */
+.form-input-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.form-input-icon {
+  position: absolute;
+  left: 14px;
+  color: #74748B;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+}
+
+.form-input-field {
+  width: 100%;
+  padding: 10px 14px 10px 42px;
+  border: 1px solid #E9E7F0;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  color: #24243B;
+  background: #FFFFFF;
+  transition: all 0.15s ease;
+  outline: none;
+}
+
+.form-input-field:focus {
+  border-color: #6754E8;
+  box-shadow: 0 0 0 3px rgba(103, 84, 232, 0.15);
+}
+
+.form-input-field.input-error {
+  border-color: #EF4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15);
+}
+
+.password-toggle-btn {
+  position: absolute;
+  right: 12px;
+  background: transparent;
+  border: none;
+  color: #74748B;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 4px;
+  transition: color 0.15s ease;
+}
+
+.password-toggle-btn:hover {
+  color: #24243B;
+}
+
+/* Password strength indicator */
+.password-strength-bar {
+  display: flex;
+  gap: 4px;
+  height: 4px;
+  margin-top: 6px;
+}
+
+.strength-segment {
+  flex: 1;
+  height: 100%;
+  background: #E9E7F0;
+  border-radius: 2px;
+  transition: background 0.2s ease;
+}
+
+.strength-weak {
+  background: #EF4444;
+}
+
+.strength-medium {
+  background: #F59E0B;
+}
+
+.strength-strong {
+  background: #16A34A;
+}
+
+/* Demo Switcher Pills */
+.demo-account-pills {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid #E9E7F0;
 }
 
 .demo-pill-title {
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   font-weight: 700;
   text-transform: uppercase;
-  color: var(--text-secondary);
+  color: #74748B;
   letter-spacing: 0.05em;
+  margin-bottom: 10px;
 }
 
 .demo-pill-row {
@@ -895,20 +1134,25 @@ body {
 }
 
 .demo-pill-btn {
-  padding: 7px 10px;
-  border: 1px solid var(--border-color);
+  padding: 8px 10px;
+  border: 1px solid #E9E7F0;
   background: #F8F9FD;
-  border-radius: var(--radius-xs);
+  border-radius: 8px;
   font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--text-main);
+  color: #24243B;
   cursor: pointer;
   text-align: left;
   transition: all 0.15s ease;
 }
 
 .demo-pill-btn:hover {
-  background: var(--primary-light);
-  border-color: var(--primary);
-  color: var(--primary);
+  background: #F0EDFE;
+  border-color: #6754E8;
+  color: #6754E8;
+}
+
+@media (max-width: 900px) {
+  .auth-hero-panel {
+    display: none;
+  }
 }

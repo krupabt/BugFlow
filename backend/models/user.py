@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from werkzeug.security import generate_password_hash, check_password_hash
 import bcrypt
-from app.extensions import db
+from extensions import db
 
 ROLE_DISPLAY_MAP = {
     'ADMIN': 'Admin',

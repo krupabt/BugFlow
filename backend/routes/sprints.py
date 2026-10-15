@@ -1,10 +1,10 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from datetime import datetime
-from app.extensions import db
-from app.models.sprint import Sprint
-from app.models.project import Project
-from app.models.user import User
+from extensions import db
+from models.sprint import Sprint
+from models.project import Project
+from models.user import User
 
 sprints_bp = Blueprint("sprints", __name__, url_prefix="/api/sprints")
 

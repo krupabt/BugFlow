@@ -1,10 +1,10 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required
 import sqlalchemy as sa
-from app.extensions import db
-from app.models.issue import Issue
-from app.models.project import Project
-from app.models.user import User
+from extensions import db
+from models.issue import Issue
+from models.project import Project
+from models.user import User
 
 reports_bp = Blueprint("reports", __name__, url_prefix="/api/reports")
 
