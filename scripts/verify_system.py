@@ -29,11 +29,11 @@ class BugFlowPhase1Verification(unittest.TestCase):
             project_count = Project.query.count()
             sprint_count = Sprint.query.count()
 
-            print(f"\n[Test 1] DB Counts: Total Issues: {issue_count} | Sprints: {sprint_count} | Projects: {project_count} | Users: {user_count} (Synthetic: {synthetic_users})")
-            self.assertGreaterEqual(issue_count, 730, "Must have at least 730 imported issues")
-            self.assertGreaterEqual(project_count, 8, "Must have at least 8 projects")
-            self.assertGreaterEqual(sprint_count, 48, "Must have at least 48 sprints")
-            self.assertGreaterEqual(synthetic_users, 20, "Must have at least 20 synthetic users")
+            print(f"\n[Test 1] DB Counts: Total Issues: {issue_count} | Sprints: {sprint_count} | Projects: {project_count} | Users: {user_count}")
+            self.assertEqual(project_count, 8, "Must have exactly 8 authoritative projects")
+            self.assertEqual(user_count, 20, "Must have exactly 20 authoritative users")
+            self.assertEqual(sprint_count, 48, "Must have exactly 48 sprints")
+            self.assertEqual(issue_count, 730, "Must have exactly 730 imported issues")
 
     def test_02_all_four_roles_login_and_dashboards(self):
         """Verifies login, token generation, and role identification for all 4 roles."""
@@ -180,6 +180,44 @@ class BugFlowPhase1Verification(unittest.TestCase):
         self.assertEqual(user_create_res.status_code, 403)
         self.assertIn('Only Administrators', user_create_res.json.get('error', ''))
         print("[Test 6] Verified that Developer cannot access Administrator endpoints (HTTP 403)")
+
+    def test_07_natural_numeric_issue_sorting_and_creation(self):
+        """Verifies natural numeric sorting (BUG-00001, BUG-00002...) and concurrency-safe sequential creation."""
+        res = self.client.get('/api/issues?sort_by=id&sort_dir=asc&per_page=15')
+        self.assertEqual(res.status_code, 200)
+        issues = res.json.get('issues', [])
+        ids = [i['id'] for i in issues]
+        print(f"\n[Test 7] Natural Sorting First 5 IDs: {ids[:5]}")
+        self.assertEqual(ids[0], 'BUG-00001')
+        self.assertEqual(ids[1], 'BUG-00002')
+        self.assertEqual(ids[2], 'BUG-00003')
+        self.assertEqual(ids[3], 'BUG-00004')
+        self.assertEqual(ids[4], 'BUG-00005')
+
+        # Test creating next sequential issue
+        admin_res = self.client.post('/api/auth/login', json={'email': 'krupa@example.org', 'password': 'BugFlow@2026'})
+        token = admin_res.json['access_token']
+        headers = {'Authorization': f'Bearer {token}'}
+
+        new_issue_res = self.client.post('/api/issues', json={
+            'title': 'Test Sequential Creation',
+            'description': 'Testing concurrency-safe sequential issue ID generation',
+            'project_id': 'PRJ-001',
+            'issue_type': 'Bug',
+            'severity': 'Medium',
+            'priority': 'P2'
+        }, headers=headers)
+        self.assertEqual(new_issue_res.status_code, 201)
+        created_issue = new_issue_res.json.get('issue', {})
+        print(f"[Test 7] Newly generated sequential issue ID: {created_issue.get('id')}")
+        self.assertTrue(created_issue.get('id', '').startswith('BUG-'))
+
+        # Clean up created issue to keep dataset at 730
+        with self.app.app_context():
+            iss = db.session.get(Issue, created_issue['id'])
+            if iss:
+                db.session.delete(iss)
+                db.session.commit()
 
 if __name__ == '__main__':
     unittest.main()

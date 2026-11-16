@@ -86,9 +86,8 @@ export default function Register() {
         role: 'DEVELOPER' // Safe default role: elevated roles require Administrator assignment
       });
 
-      // Role-Based Redirection
-      const redirectPath = getRoleDashboardPath(user?.role);
-      navigate(redirectPath, { replace: true });
+      // Redirect to the Authentication Successful confirmation screen
+      navigate('/auth/success', { replace: true });
     } catch (err) {
       setError(err.message || 'Registration failed. Please check your details and try again.');
     } finally {
@@ -124,7 +123,7 @@ export default function Register() {
             </div>
             <div className="workflow-step">
               <span className="workflow-step-num">✓</span>
-              <span className="workflow-step-text">Realtime PostgreSQL Audit History</span>
+              <span className="workflow-step-text">Realtime Activity & Audit History</span>
             </div>
           </div>
         </div>
@@ -138,8 +137,15 @@ export default function Register() {
       {/* RIGHT SECTION: White + Violet Form Interface */}
       <main className="auth-form-panel">
         <div className="auth-card" style={{ maxWidth: '460px' }}>
-          <h2 className="auth-card-title">Create an account</h2>
-          <p className="auth-card-subtitle">Get started with your BugFlow team workspace.</p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
+            <div style={{ width: '38px', height: '38px', background: '#E97862', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FFFFFF', boxShadow: '0 2px 8px rgba(233, 120, 98, 0.3)' }}>
+              <Bug size={20} />
+            </div>
+            <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#393442', letterSpacing: '-0.02em' }}>BugFlow</span>
+          </div>
+
+          <h2 className="auth-card-title">Create Your Account</h2>
+          <p className="auth-card-subtitle">Join BugFlow to manage issues and collaborate with your team.</p>
 
           {error && (
             <div className="toast-notice toast-error" style={{ marginBottom: '18px', padding: '10px 12px', fontSize: '0.82rem' }}>
@@ -253,14 +259,14 @@ export default function Register() {
             </div>
 
             {/* Safe Role Notice */}
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', padding: '10px 12px', background: '#F8F9FD', border: '1px solid #E9E7F0', borderRadius: '8px', marginBottom: '20px', fontSize: '0.76rem', color: '#74748B' }}>
-              <Info size={16} color="#6754E8" style={{ flexShrink: 0, marginTop: '2px' }} />
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', padding: '10px 12px', background: '#FAF8F5', border: '1px solid #EAE5E0', borderRadius: '8px', marginBottom: '20px', fontSize: '0.76rem', color: '#817B86' }}>
+              <Info size={16} color="#E97862" style={{ flexShrink: 0, marginTop: '2px' }} />
               <span>
                 New registrations are provisioned with <strong>Developer</strong> permissions. Administrative and Project Manager roles require authorized elevation by an existing Administrator.
               </span>
             </div>
 
-            {/* Create Account Button */}
+            {/* Register Button */}
             <button
               type="submit"
               className="btn btn-primary"
@@ -270,22 +276,22 @@ export default function Register() {
               {loading ? (
                 <>
                   <div className="spinner" style={{ width: '16px', height: '16px', borderWidth: '2px', borderColor: '#FFFFFF', borderTopColor: 'transparent' }} />
-                  <span>Creating Account...</span>
+                  <span>Registering...</span>
                 </>
               ) : (
                 <>
-                  <span>Create Account</span>
+                  <span>Register</span>
                   <ArrowRight size={16} />
                 </>
               )}
             </button>
           </form>
 
-          {/* Sign In Link */}
-          <div style={{ marginTop: '24px', textAlign: 'center', fontSize: '0.84rem', color: '#74748B' }}>
+          {/* Already have an account? Login */}
+          <div style={{ marginTop: '24px', textAlign: 'center', fontSize: '0.84rem', color: '#817B86' }}>
             Already have an account?{' '}
-            <Link to="/login" style={{ color: '#6754E8', fontWeight: 600, textDecoration: 'none' }}>
-              Sign in
+            <Link to="/login" style={{ color: '#E97862', fontWeight: 600, textDecoration: 'none' }}>
+              Login
             </Link>
           </div>
         </div>

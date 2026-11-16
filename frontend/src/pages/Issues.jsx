@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, useParams } from 'react-router-dom';
 import {
   Plus,
   Search,
@@ -16,23 +16,78 @@ import {
   ExternalLink,
   CheckCircle,
   AlertTriangle,
+  Clock,
+  Bug,
   X
 } from 'lucide-react';
 import { api } from '../api';
 import { useAuth } from '../context/AuthContext';
+import IssueDetailPanel from '../components/IssueDetailPanel';
 
 const WORKFLOW_STAGES = ["Open", "In Progress", "Testing", "Resolved", "Closed"];
-const PRIORITIES = ["P0", "P1", "P2", "P3"];
+const PRIORITIES = [
+  { value: "P1", label: "P1 – Urgent" },
+  { value: "P2", label: "P2 – High" },
+  { value: "P3", label: "P3 – Medium" },
+  { value: "P4", label: "P4 – Low" }
+];
 const SEVERITIES = ["Critical", "High", "Medium", "Low"];
-const ISSUE_TYPES = ["Bug", "Feature Request", "Enhancement", "Support Ticket", "Technical Debt"];
+const ISSUE_TYPES = ["Bug", "Feature Request", "Enhancement", "Technical Debt"];
+const AFFECTED_MODULES = [
+  "Login",
+  "Dashboard",
+  "Registration",
+  "User Management",
+  "Projects",
+  "Payment",
+  "Reports",
+  "Sprint Management",
+  "Issue Management",
+  "Other"
+];
 
 export default function Issues() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const { id: routeIssueId } = useParams();
+
+  // Slide-out panel state
+  const [panelIssueId, setPanelIssueId] = useState(routeIssueId || null);
+  const [isPanelOpen, setIsPanelOpen] = useState(!!routeIssueId);
+
+  useEffect(() => {
+    if (routeIssueId) {
+      setPanelIssueId(routeIssueId);
+      setIsPanelOpen(true);
+    }
+  }, [routeIssueId]);
+
+  const handleOpenIssuePanel = (issueId) => {
+    setPanelIssueId(issueId);
+    setIsPanelOpen(true);
+    window.history.pushState(null, '', `/issues/${issueId}`);
+  };
+
+  const handleCloseIssuePanel = () => {
+    setIsPanelOpen(false);
+    window.history.pushState(null, '', '/issues');
+  };
+
+  const handleIssueUpdatedFromPanel = (updatedIssue) => {
+    setIssues(prev => prev.map(item => item.id === updatedIssue.id ? { ...item, ...updatedIssue } : item));
+  };
 
   const normRole = (user?.role || '').toUpperCase().replace(/ /g, '_');
-  const canManageIssue = normRole === 'ADMIN' || normRole === 'PROJECT_MANAGER';
+  const isAdmin = normRole === 'ADMIN' || normRole === 'ADMINISTRATOR';
+  const isPM = normRole === 'PROJECT_MANAGER';
+  const isDev = normRole === 'DEVELOPER';
+  const isTester = normRole === 'TESTER';
+  const canManageIssue = isAdmin || isPM;
+
+  const [testerView, setTesterView] = useState('all'); // 'all' | 'reported' | 'tests'
+  const [testerReportedCount, setTesterReportedCount] = useState(0);
+  const [testerTestsCount, setTesterTestsCount] = useState(0);
 
   const [issues, setIssues] = useState([]);
   const [total, setTotal] = useState(0);
@@ -40,6 +95,14 @@ export default function Issues() {
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState('table'); // 'table' | 'kanban'
+  const [summaryStats, setSummaryStats] = useState({
+    total: 0,
+    open: 0,
+    in_progress: 0,
+    resolved: 0,
+    closed: 0,
+    testing: 0
+  });
 
   // Lookups
   const [projects, setProjects] = useState([]);
@@ -53,8 +116,9 @@ export default function Issues() {
   const [selectedPriority, setSelectedPriority] = useState('');
   const [selectedSeverity, setSelectedSeverity] = useState('');
   const [selectedType, setSelectedType] = useState('');
-  const [sortBy, setSortBy] = useState('created_at');
-  const [sortDir, setSortDir] = useState('desc');
+  const [selectedModule, setSelectedModule] = useState('');
+  const [sortBy, setSortBy] = useState('id');
+  const [sortDir, setSortDir] = useState('asc');
 
   // Modals
   const [createModalOpen, setCreateModalOpen] = useState(searchParams.get('action') === 'create');
@@ -72,6 +136,8 @@ export default function Issues() {
     description: '',
     project_id: '',
     issue_type: 'Bug',
+    affected_module: 'Login',
+    custom_module: '',
     severity: 'Medium',
     priority: 'P2',
     assigned_to: '',
@@ -123,6 +189,7 @@ export default function Issues() {
         priority: selectedPriority || undefined,
         severity: selectedSeverity || undefined,
         issue_type: selectedType || undefined,
+        affected_module: selectedModule || undefined,
       };
 
       // Check URL query parameters for shortcuts
@@ -133,10 +200,23 @@ export default function Issues() {
         params.reporter_id = user.id;
       }
 
+      if (isTester && testerView && testerView !== 'all') {
+        params.tester_view = testerView;
+      }
+
       const res = await api.getIssues(params);
       setIssues(res.issues || []);
       setTotal(res.total || 0);
       setTotalPages(res.pages || 1);
+      if (res.summary) {
+        setSummaryStats(res.summary);
+      }
+      if (res.reported_count !== undefined) {
+        setTesterReportedCount(res.reported_count);
+      }
+      if (res.tests_count !== undefined) {
+        setTesterTestsCount(res.tests_count);
+      }
     } catch (err) {
       setNotice({ type: 'error', text: err.message || 'Failed to load issues' });
     } finally {
@@ -146,7 +226,7 @@ export default function Issues() {
 
   useEffect(() => {
     loadIssues();
-  }, [page, sortBy, sortDir, selectedProject, selectedStatus, selectedPriority, selectedSeverity, selectedType, viewMode]);
+  }, [page, sortBy, sortDir, selectedProject, selectedStatus, selectedPriority, selectedSeverity, selectedType, selectedModule, viewMode, testerView]);
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
@@ -158,7 +238,15 @@ export default function Issues() {
   const handleCreateSubmit = async (e) => {
     e.preventDefault();
     try {
-      const created = await api.createIssue(formData);
+      const moduleToSave = formData.affected_module === 'Other'
+        ? (formData.custom_module?.trim() || 'Other')
+        : (formData.affected_module || 'Other');
+      const payload = {
+        ...formData,
+        affected_module: moduleToSave,
+        component: formData.component?.trim() || moduleToSave
+      };
+      const created = await api.createIssue(payload);
       setNotice({ type: 'success', text: `Issue ${created.issue?.id} created successfully!` });
       setCreateModalOpen(false);
       setFormData({
@@ -166,6 +254,8 @@ export default function Issues() {
         description: '',
         project_id: projects[0]?.id || '',
         issue_type: 'Bug',
+        affected_module: 'Login',
+        custom_module: '',
         severity: 'Medium',
         priority: 'P2',
         assigned_to: '',
@@ -188,7 +278,14 @@ export default function Issues() {
     e.preventDefault();
     if (!editModalIssue) return;
     try {
-      await api.updateIssue(editModalIssue.id, editModalIssue);
+      const moduleToSave = editModalIssue.affected_module === 'Other'
+        ? (editModalIssue.custom_module?.trim() || 'Other')
+        : (editModalIssue.affected_module || 'Other');
+      const payload = {
+        ...editModalIssue,
+        affected_module: moduleToSave
+      };
+      await api.updateIssue(editModalIssue.id, payload);
       setNotice({ type: 'success', text: `Issue ${editModalIssue.id} updated successfully!` });
       setEditModalIssue(null);
       loadIssues();
@@ -245,14 +342,22 @@ export default function Issues() {
       {/* Header */}
       <div className="page-header">
         <div>
-          <h1 className="page-title">Issue Management</h1>
+          <h1 className="page-title">
+            {isDev ? 'My Assigned Issues' : isTester ? 'Tester Workspace' : isPM ? 'Project Issues' : 'Issue Management'}
+          </h1>
           <p className="page-subtitle">
-            Showing {total} issues in real-time from PostgreSQL
+            {isDev
+              ? `Displaying ${total} issues assigned directly to you across your active projects`
+              : isTester
+              ? `Displaying ${total} issues (${testerReportedCount} reported, ${testerTestsCount} ready for testing)`
+              : isPM
+              ? `Displaying ${total} issues across your managed projects`
+              : `Showing ${total} issues in real-time`}
           </p>
         </div>
         <div className="header-actions">
           {/* Toggle Table / Kanban Board */}
-          <div style={{ display: 'flex', border: '1px solid #E9E7F0', borderRadius: '8px', overflow: 'hidden', background: '#FFFFFF' }}>
+          <div style={{ display: 'flex', border: '1px solid #EAE5E0', borderRadius: '8px', overflow: 'hidden', background: '#FFFFFF' }}>
             <button
               style={{
                 display: 'flex',
@@ -260,8 +365,8 @@ export default function Issues() {
                 gap: '6px',
                 padding: '8px 12px',
                 border: 'none',
-                background: viewMode === 'table' ? '#6754E8' : '#FFFFFF',
-                color: viewMode === 'table' ? '#FFFFFF' : '#74748B',
+                background: viewMode === 'table' ? '#E97862' : '#FFFFFF',
+                color: viewMode === 'table' ? '#FFFFFF' : '#817B86',
                 cursor: 'pointer',
                 fontWeight: 600,
                 fontSize: '0.82rem'
@@ -278,8 +383,8 @@ export default function Issues() {
                 gap: '6px',
                 padding: '8px 12px',
                 border: 'none',
-                background: viewMode === 'kanban' ? '#6754E8' : '#FFFFFF',
-                color: viewMode === 'kanban' ? '#FFFFFF' : '#74748B',
+                background: viewMode === 'kanban' ? '#E97862' : '#FFFFFF',
+                color: viewMode === 'kanban' ? '#FFFFFF' : '#817B86',
                 cursor: 'pointer',
                 fontWeight: 600,
                 fontSize: '0.82rem'
@@ -291,7 +396,7 @@ export default function Issues() {
             </button>
           </div>
 
-          <button className="btn btn-primary" onClick={() => setCreateModalOpen(true)}>
+          <button className="btn btn-primary" onClick={() => navigate('/issues/create')}>
             <Plus size={16} />
             <span>Create Issue</span>
           </button>
@@ -308,6 +413,127 @@ export default function Issues() {
           </button>
         </div>
       )}
+
+      {/* PART 1.A: Issue Dashboard Summary Cards (Calculated from PostgreSQL) */}
+      <div className="stat-grid" style={{ marginBottom: '20px', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
+        <div 
+          className="stat-card" 
+          onClick={() => { setSelectedStatus(''); setPage(1); }}
+          style={{ cursor: 'pointer', border: selectedStatus === '' ? '2px solid #2563EB' : '1px solid #EAE5E0' }}
+          title="Click to view all issues"
+        >
+          <div className="stat-header">
+            <span className="stat-title">Total Issues</span>
+            <div className="stat-icon primary"><Bug size={18} /></div>
+          </div>
+          <div className="stat-value">{summaryStats.total}</div>
+          <div className="stat-trend"><span style={{ color: '#2563EB', fontWeight: 600 }}>All Tracked Issues</span></div>
+        </div>
+
+        <div 
+          className="stat-card" 
+          onClick={() => { setSelectedStatus('Open'); setPage(1); }}
+          style={{ cursor: 'pointer', border: selectedStatus === 'Open' ? '2px solid #E97862' : '1px solid #EAE5E0' }}
+          title="Click to filter by Open status"
+        >
+          <div className="stat-header">
+            <span className="stat-title">Open Issues</span>
+            <div className="stat-icon" style={{ background: '#FDF2F0', color: '#E97862' }}><AlertTriangle size={18} /></div>
+          </div>
+          <div className="stat-value">{summaryStats.open}</div>
+          <div className="stat-trend"><span style={{ color: '#E97862', fontWeight: 600 }}>Awaiting Work / Triage</span></div>
+        </div>
+
+        <div 
+          className="stat-card" 
+          onClick={() => { setSelectedStatus('In Progress'); setPage(1); }}
+          style={{ cursor: 'pointer', border: selectedStatus === 'In Progress' ? '2px solid #D97706' : '1px solid #EAE5E0' }}
+          title="Click to filter by In Progress status"
+        >
+          <div className="stat-header">
+            <span className="stat-title">In Progress Issues</span>
+            <div className="stat-icon" style={{ background: '#FEF3C7', color: '#D97706' }}><Clock size={18} /></div>
+          </div>
+          <div className="stat-value">{summaryStats.in_progress}</div>
+          <div className="stat-trend"><span style={{ color: '#D97706', fontWeight: 600 }}>Active Development</span></div>
+        </div>
+
+        <div 
+          className="stat-card" 
+          onClick={() => { setSelectedStatus('Resolved'); setPage(1); }}
+          style={{ cursor: 'pointer', border: selectedStatus === 'Resolved' || selectedStatus === 'Closed' ? '2px solid #16A34A' : '1px solid #EAE5E0' }}
+          title="Click to filter by Resolved status"
+        >
+          <div className="stat-header">
+            <span className="stat-title">Resolved Issues</span>
+            <div className="stat-icon" style={{ background: '#DCFCE7', color: '#16A34A' }}><CheckCircle size={18} /></div>
+          </div>
+          <div className="stat-value">{summaryStats.resolved + (summaryStats.closed || 0)}</div>
+          <div className="stat-trend"><span style={{ color: '#16A34A', fontWeight: 600 }}>{summaryStats.resolved} Resolved • {summaryStats.closed || 0} Closed</span></div>
+        </div>
+      </div>
+
+      {/* Tester Tabs: My Reported Issues vs My Tests */}
+      {isTester && (
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+          <button
+            type="button"
+            className={`btn ${testerView === 'all' ? 'btn-primary' : 'btn-secondary'}`}
+            style={{ padding: '6px 14px', fontSize: '0.82rem', fontWeight: 600 }}
+            onClick={() => { setTesterView('all'); setPage(1); }}
+          >
+            All Scoped Issues ({total})
+          </button>
+          <button
+            type="button"
+            className={`btn ${testerView === 'reported' ? 'btn-primary' : 'btn-secondary'}`}
+            style={{ padding: '6px 14px', fontSize: '0.82rem', fontWeight: 600 }}
+            onClick={() => { setTesterView('reported'); setPage(1); }}
+          >
+            My Reported Issues ({testerReportedCount})
+          </button>
+          <button
+            type="button"
+            className={`btn ${testerView === 'tests' ? 'btn-primary' : 'btn-secondary'}`}
+            style={{ padding: '6px 14px', fontSize: '0.82rem', fontWeight: 600 }}
+            onClick={() => { setTesterView('tests'); setPage(1); }}
+          >
+            My Tests (Ready for Verification) ({testerTestsCount})
+          </button>
+        </div>
+      )}
+
+      {/* Issue Status Filter Tabs: All, Open, In Progress, Testing */}
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', borderBottom: '1px solid #E2E8F0', paddingBottom: '12px', flexWrap: 'wrap' }}>
+        {[
+          { key: '', label: 'All' },
+          { key: 'Open', label: 'Open' },
+          { key: 'In Progress', label: 'In Progress' },
+          { key: 'Testing', label: 'Testing' }
+        ].map(tab => {
+          const isActive = selectedStatus === tab.key;
+          return (
+            <button
+              key={tab.key}
+              type="button"
+              onClick={() => { setSelectedStatus(tab.key); setPage(1); }}
+              style={{
+                padding: '7px 20px',
+                borderRadius: '8px',
+                border: isActive ? '1px solid #2563EB' : '1px solid #E2E8F0',
+                background: isActive ? '#EFF6FF' : '#FFFFFF',
+                color: isActive ? '#2563EB' : '#64748B',
+                fontWeight: isActive ? 700 : 600,
+                fontSize: '0.86rem',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              {tab.label}
+            </button>
+          );
+        })}
+      </div>
 
       {/* Filters Bar */}
       <div className="filter-bar">
@@ -358,7 +584,7 @@ export default function Issues() {
         >
           <option value="">All Priorities</option>
           {PRIORITIES.map((p) => (
-            <option key={p} value={p}>{p}</option>
+            <option key={p.value} value={p.value}>{p.label}</option>
           ))}
         </select>
 
@@ -388,8 +614,40 @@ export default function Issues() {
           ))}
         </select>
 
+        {/* Affected Module Filter */}
+        <select
+          className="form-select"
+          style={{ width: 'auto', minWidth: '150px' }}
+          value={selectedModule}
+          onChange={(e) => { setSelectedModule(e.target.value); setPage(1); }}
+        >
+          <option value="">All Modules</option>
+          {AFFECTED_MODULES.map((m) => (
+            <option key={m} value={m}>{m}</option>
+          ))}
+        </select>
+
+        {/* Sort Dropdown */}
+        <select
+          className="form-select"
+          style={{ width: 'auto', minWidth: '170px' }}
+          value={`${sortBy}:${sortDir}`}
+          onChange={(e) => {
+            const [field, dir] = e.target.value.split(':');
+            setSortBy(field);
+            setSortDir(dir);
+            setPage(1);
+          }}
+        >
+          <option value="id:asc">Issue ID Ascending</option>
+          <option value="id:desc">Issue ID Descending</option>
+          <option value="created_at:desc">Newest First</option>
+          <option value="created_at:asc">Oldest First</option>
+          <option value="priority:asc">Priority</option>
+        </select>
+
         {/* Reset */}
-        {(selectedProject || selectedStatus || selectedPriority || selectedSeverity || selectedType || search) && (
+        {(selectedProject || selectedStatus || selectedPriority || selectedSeverity || selectedType || selectedModule || search) && (
           <button
             className="btn btn-secondary"
             style={{ padding: '6px 12px', fontSize: '0.8rem' }}
@@ -399,6 +657,7 @@ export default function Issues() {
               setSelectedPriority('');
               setSelectedSeverity('');
               setSelectedType('');
+              setSelectedModule('');
               setSearch('');
               setPage(1);
             }}
@@ -420,58 +679,69 @@ export default function Issues() {
             <table className="table">
               <thead>
                 <tr>
-                  <th style={{ cursor: 'pointer' }} onClick={() => { setSortBy('id'); setSortDir(sortDir === 'asc' ? 'desc' : 'asc'); }}>
+                  <th style={{ cursor: 'pointer', width: '110px' }} onClick={() => { setSortBy('id'); setSortDir(sortDir === 'asc' ? 'desc' : 'asc'); }}>
                     Issue ID {sortBy === 'id' && (sortDir === 'asc' ? '↑' : '↓')}
                   </th>
                   <th>Title</th>
-                  <th>Project</th>
-                  <th>Type</th>
+                  <th>Issue Type</th>
                   <th>Severity</th>
                   <th>Priority</th>
                   <th>Status</th>
                   <th>Assigned Developer</th>
+                  <th>Created Date</th>
                   <th style={{ textAlign: 'right' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {issues.length === 0 ? (
                   <tr>
-                    <td colSpan="9" style={{ textAlign: 'center', padding: '40px', color: '#74748B' }}>
+                    <td colSpan="9" style={{ textAlign: 'center', padding: '40px', color: '#817B86' }}>
                       No issues matched your filter criteria.
                     </td>
                   </tr>
                 ) : (
                   issues.map((i) => (
-                    <tr key={i.id}>
-                      <td style={{ fontWeight: 700, color: '#6754E8', whiteSpace: 'nowrap' }}>
+                    <tr
+                      key={i.id}
+                      onClick={() => handleOpenIssuePanel(i.id)}
+                      style={{
+                        cursor: 'pointer',
+                        background: panelIssueId === i.id && isPanelOpen ? '#EFF6FF' : undefined,
+                        transition: 'background 0.15s ease'
+                      }}
+                    >
+                      <td style={{ fontWeight: 700, color: '#2563EB', whiteSpace: 'nowrap' }}>
                         <a
                           href={`/issues/${i.id}`}
-                          onClick={(e) => { e.preventDefault(); navigate(`/issues/${i.id}`); }}
-                          style={{ color: '#6754E8', textDecoration: 'none' }}
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleOpenIssuePanel(i.id); }}
+                          style={{ color: '#2563EB', textDecoration: 'none' }}
                         >
                           {i.id}
                         </a>
                       </td>
                       <td style={{ fontWeight: 600, maxWidth: '280px' }}>
-                        <span
-                          style={{ cursor: 'pointer', color: '#24243B' }}
-                          onClick={() => navigate(`/issues/${i.id}`)}
+                        <div
+                          style={{ cursor: 'pointer', color: '#1E293B' }}
+                          onClick={(e) => { e.stopPropagation(); handleOpenIssuePanel(i.id); }}
                           title={i.description}
                         >
                           {i.title}
-                        </span>
+                        </div>
+                        <div style={{ fontSize: '0.74rem', color: '#817B86', marginTop: '2px', display: 'flex', gap: '6px', alignItems: 'center' }}>
+                          <span>{i.project_name}</span>
+                          {i.affected_module && <span>• {i.affected_module}</span>}
+                        </div>
                       </td>
-                      <td style={{ color: '#74748B', whiteSpace: 'nowrap' }}>{i.project_name}</td>
                       <td>
-                        <span style={{ fontSize: '0.78rem', color: '#74748B' }}>{i.issue_type}</span>
+                        <span style={{ fontSize: '0.8rem', color: '#6A6470', fontWeight: 500 }}>{i.issue_type}</span>
                       </td>
                       <td>
-                        <span className={`badge badge-${(i.severity || 'Medium').toLowerCase()}`}>
+                        <span className={`badge badge-sev-${(i.severity || 'Medium').toLowerCase()}`}>
                           {i.severity}
                         </span>
                       </td>
                       <td>
-                        <span className={`badge badge-${(i.priority || 'P2').toLowerCase()}`}>
+                        <span className={`badge badge-pri-${(i.priority || 'P2').toLowerCase()}`}>
                           {i.priority}
                         </span>
                       </td>
@@ -484,16 +754,22 @@ export default function Issues() {
                         {i.assignee_name !== 'Unassigned' ? (
                           <span style={{ fontWeight: 500 }}>{i.assignee_name}</span>
                         ) : (
-                          <span style={{ color: '#A3A3BA', fontStyle: 'italic' }}>Unassigned</span>
+                          <span style={{ color: '#A8A3AF', fontStyle: 'italic' }}>Unassigned</span>
                         )}
+                      </td>
+                      <td style={{ color: '#817B86', fontSize: '0.82rem', whiteSpace: 'nowrap' }}>
+                        {i.created_date || (i.created_at ? i.created_at.substring(0, 10) : '—')}
                       </td>
                       <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
                         <div style={{ display: 'inline-flex', gap: '4px' }}>
                           {/* View Details */}
                           <button
                             className="btn-icon"
-                            title="View Details"
-                            onClick={() => navigate(`/issues/${i.id}`)}
+                            title="View Details in Slide-Out Panel"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenIssuePanel(i.id);
+                            }}
                           >
                             <ExternalLink size={15} />
                           </button>
@@ -502,7 +778,8 @@ export default function Issues() {
                           <button
                             className="btn-icon"
                             title="Update Status"
-                            onClick={() => {
+                            onClick={(e) => {
+                              e.stopPropagation();
                               setStatusModalIssue(i);
                               setNewStatus(i.status);
                             }}
@@ -515,7 +792,8 @@ export default function Issues() {
                             <button
                               className="btn-icon"
                               title="Assign Developer"
-                              onClick={() => {
+                              onClick={(e) => {
+                                e.stopPropagation();
                                 setAssignModalIssue(i);
                                 setSelectedAssignee(i.assigned_to || '');
                               }}
@@ -528,7 +806,10 @@ export default function Issues() {
                           <button
                             className="btn-icon"
                             title="Edit Issue"
-                            onClick={() => setEditModalIssue({ ...i })}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/issues/${i.id}/edit`);
+                            }}
                           >
                             <Edit size={15} />
                           </button>
@@ -539,7 +820,10 @@ export default function Issues() {
                               className="btn-icon"
                               title="Delete Issue"
                               style={{ color: '#EF4444' }}
-                              onClick={() => setDeleteModalIssue(i)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDeleteModalIssue(i);
+                              }}
                             >
                               <Trash2 size={15} />
                             </button>
@@ -592,7 +876,7 @@ export default function Issues() {
                     <div
                       className="kanban-card"
                       key={issue.id}
-                      onClick={() => navigate(`/issues/${issue.id}`)}
+                      onClick={() => handleOpenIssuePanel(issue.id)}
                     >
                       <div className="kanban-card-key">{issue.id}</div>
                       <div className="kanban-card-title">{issue.title}</div>
@@ -682,23 +966,25 @@ export default function Issues() {
 
                 <div className="form-grid-3">
                   <div className="form-group">
-                    <label className="form-label">Priority</label>
+                    <label className="form-label">Severity *</label>
                     <select
                       className="form-select"
-                      value={formData.priority}
-                      onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
-                    >
-                      {PRIORITIES.map(p => <option key={p} value={p}>{p}</option>)}
-                    </select>
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Severity</label>
-                    <select
-                      className="form-select"
+                      required
                       value={formData.severity}
                       onChange={(e) => setFormData({ ...formData, severity: e.target.value })}
                     >
                       {SEVERITIES.map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Priority *</label>
+                    <select
+                      className="form-select"
+                      required
+                      value={formData.priority}
+                      onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
+                    >
+                      {PRIORITIES.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
                     </select>
                   </div>
                   <div className="form-group">
@@ -718,15 +1004,46 @@ export default function Issues() {
 
                 <div className="form-grid-2">
                   <div className="form-group">
-                    <label className="form-label">Component</label>
-                    <input
-                      type="text"
-                      className="form-input"
-                      placeholder="e.g. Auth, Checkout, API..."
-                      value={formData.component}
-                      onChange={(e) => setFormData({ ...formData, component: e.target.value })}
-                    />
+                    <label className="form-label">Affected Module *</label>
+                    <select
+                      className="form-select"
+                      required
+                      value={formData.affected_module || 'Login'}
+                      onChange={(e) => setFormData({ ...formData, affected_module: e.target.value })}
+                    >
+                      {AFFECTED_MODULES.map(m => <option key={m} value={m}>{m}</option>)}
+                    </select>
                   </div>
+                  {formData.affected_module === 'Other' ? (
+                    <div className="form-group">
+                      <label className="form-label">Custom Module Name *</label>
+                      <input
+                        type="text"
+                        className="form-input"
+                        required
+                        placeholder="Enter custom module name..."
+                        value={formData.custom_module || ''}
+                        onChange={(e) => setFormData({ ...formData, custom_module: e.target.value })}
+                      />
+                    </div>
+                  ) : (
+                    <div className="form-group">
+                      <label className="form-label">Environment</label>
+                      <select
+                        className="form-select"
+                        value={formData.environment}
+                        onChange={(e) => setFormData({ ...formData, environment: e.target.value })}
+                      >
+                        <option value="Development">Development</option>
+                        <option value="QA">QA</option>
+                        <option value="Staging">Staging</option>
+                        <option value="Production">Production</option>
+                      </select>
+                    </div>
+                  )}
+                </div>
+
+                {formData.affected_module === 'Other' && (
                   <div className="form-group">
                     <label className="form-label">Environment</label>
                     <select
@@ -740,7 +1057,7 @@ export default function Issues() {
                       <option value="Production">Production</option>
                     </select>
                   </div>
-                </div>
+                )}
 
                 <div className="form-group">
                   <label className="form-label">Steps to Reproduce</label>
@@ -781,7 +1098,7 @@ export default function Issues() {
                   Cancel
                 </button>
                 <button type="submit" className="btn btn-primary">
-                  Create Issue in PostgreSQL
+                  Create Issue
                 </button>
               </div>
             </form>
@@ -823,19 +1140,21 @@ export default function Issues() {
                 </div>
                 <div className="form-grid-3">
                   <div className="form-group">
-                    <label className="form-label">Priority</label>
+                    <label className="form-label">Issue Type *</label>
                     <select
                       className="form-select"
-                      value={editModalIssue.priority || 'P2'}
-                      onChange={(e) => setEditModalIssue({ ...editModalIssue, priority: e.target.value })}
+                      required
+                      value={editModalIssue.issue_type || 'Bug'}
+                      onChange={(e) => setEditModalIssue({ ...editModalIssue, issue_type: e.target.value })}
                     >
-                      {PRIORITIES.map(p => <option key={p} value={p}>{p}</option>)}
+                      {ISSUE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                     </select>
                   </div>
                   <div className="form-group">
-                    <label className="form-label">Severity</label>
+                    <label className="form-label">Severity *</label>
                     <select
                       className="form-select"
+                      required
                       value={editModalIssue.severity || 'Medium'}
                       onChange={(e) => setEditModalIssue({ ...editModalIssue, severity: e.target.value })}
                     >
@@ -843,14 +1162,64 @@ export default function Issues() {
                     </select>
                   </div>
                   <div className="form-group">
-                    <label className="form-label">Component</label>
-                    <input
-                      type="text"
-                      className="form-input"
-                      value={editModalIssue.component || ''}
-                      onChange={(e) => setEditModalIssue({ ...editModalIssue, component: e.target.value })}
-                    />
+                    <label className="form-label">Priority *</label>
+                    <select
+                      className="form-select"
+                      required
+                      value={editModalIssue.priority || 'P2'}
+                      onChange={(e) => setEditModalIssue({ ...editModalIssue, priority: e.target.value })}
+                    >
+                      {PRIORITIES.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
+                    </select>
                   </div>
+                </div>
+
+                <div className="form-grid-2">
+                  <div className="form-group">
+                    <label className="form-label">Affected Module *</label>
+                    <select
+                      className="form-select"
+                      required
+                      value={AFFECTED_MODULES.includes(editModalIssue.affected_module) ? editModalIssue.affected_module : (editModalIssue.affected_module ? 'Other' : 'Login')}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === 'Other') {
+                          setEditModalIssue({
+                            ...editModalIssue,
+                            affected_module: 'Other',
+                            custom_module: AFFECTED_MODULES.includes(editModalIssue.affected_module) ? '' : (editModalIssue.affected_module || '')
+                          });
+                        } else {
+                          setEditModalIssue({ ...editModalIssue, affected_module: val, custom_module: '' });
+                        }
+                      }}
+                    >
+                      {AFFECTED_MODULES.map(m => <option key={m} value={m}>{m}</option>)}
+                    </select>
+                  </div>
+                  {(editModalIssue.affected_module === 'Other' || (!AFFECTED_MODULES.includes(editModalIssue.affected_module) && editModalIssue.affected_module)) ? (
+                    <div className="form-group">
+                      <label className="form-label">Custom Module Name *</label>
+                      <input
+                        type="text"
+                        className="form-input"
+                        required
+                        placeholder="Enter custom module name..."
+                        value={editModalIssue.custom_module !== undefined ? editModalIssue.custom_module : (!AFFECTED_MODULES.includes(editModalIssue.affected_module) ? editModalIssue.affected_module : '')}
+                        onChange={(e) => setEditModalIssue({ ...editModalIssue, custom_module: e.target.value })}
+                      />
+                    </div>
+                  ) : (
+                    <div className="form-group">
+                      <label className="form-label">Component</label>
+                      <input
+                        type="text"
+                        className="form-input"
+                        value={editModalIssue.component || ''}
+                        onChange={(e) => setEditModalIssue({ ...editModalIssue, component: e.target.value })}
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
               <div className="modal-footer">
@@ -881,7 +1250,7 @@ export default function Issues() {
             <form onSubmit={handleAssignSubmit}>
               <div className="modal-body">
                 <p style={{ fontSize: '0.85rem', color: '#74748B', marginBottom: '14px' }}>
-                  Select an eligible developer from PostgreSQL to assign this issue:
+                  Select an eligible developer to assign this issue:
                 </p>
                 <div className="form-group">
                   <label className="form-label">Assignee</label>
@@ -983,22 +1352,24 @@ export default function Issues() {
       {/* ---------------------------------------------------- */}
       {deleteModalIssue && (
         <div className="modal-overlay">
-          <div className="modal-content" style={{ maxWidth: '420px' }}>
+          <div className="modal-content" style={{ maxWidth: '440px' }}>
             <div className="modal-header">
-              <h2 className="modal-title" style={{ color: '#EF4444' }}>Confirm Deletion</h2>
+              <h2 className="modal-title" style={{ color: '#EF4444' }}>Delete Issue</h2>
               <button className="btn-icon" onClick={() => setDeleteModalIssue(null)}>
                 <X size={18} />
               </button>
             </div>
             <div className="modal-body">
-              <p style={{ fontSize: '0.875rem', marginBottom: '10px' }}>
-                Are you sure you want to permanently delete issue <strong>{deleteModalIssue.id}</strong>?
+              <p style={{ fontSize: '1rem', fontWeight: 600, color: '#393442', marginBottom: '8px' }}>
+                Are you sure you want to delete this issue?
               </p>
-              <p style={{ fontSize: '0.8rem', color: '#74748B' }}>
-                Title: <em>{deleteModalIssue.title}</em>
-              </p>
-              <p style={{ fontSize: '0.75rem', color: '#EF4444', marginTop: '10px' }}>
-                Warning: This action cannot be undone and will delete associated comments.
+              <div style={{ background: '#FAF8F5', padding: '12px 14px', borderRadius: '8px', border: '1px solid #EAE5E0', fontSize: '0.84rem' }}>
+                <div><strong>Issue ID:</strong> {deleteModalIssue.id}</div>
+                <div style={{ marginTop: '4px' }}><strong>Title:</strong> {deleteModalIssue.title}</div>
+                <div style={{ marginTop: '4px' }}><strong>Project:</strong> {deleteModalIssue.project_name}</div>
+              </div>
+              <p style={{ fontSize: '0.78rem', color: '#EF4444', marginTop: '12px' }}>
+                Warning: This action cannot be undone and will permanently remove the issue and its comments.
               </p>
             </div>
             <div className="modal-footer">
@@ -1006,12 +1377,22 @@ export default function Issues() {
                 Cancel
               </button>
               <button className="btn btn-danger" onClick={handleDeleteConfirm}>
-                Yes, Delete Issue
+                Delete
               </button>
             </div>
           </div>
         </div>
       )}
+
+      {/* ---------------------------------------------------- */}
+      {/* RIGHT-SIDE ISSUE DETAILS SLIDE-OUT PANEL             */}
+      {/* ---------------------------------------------------- */}
+      <IssueDetailPanel
+        issueId={panelIssueId}
+        isOpen={isPanelOpen}
+        onClose={handleCloseIssuePanel}
+        onIssueUpdated={handleIssueUpdatedFromPanel}
+      />
     </div>
   );
 }

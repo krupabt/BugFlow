@@ -21,12 +21,7 @@ def create_app(config_class=Config):
         app,
         resources={
             r"/api/*": {
-                "origins": [
-                    "http://localhost:5173",
-                    "http://127.0.0.1:5173",
-                    "http://localhost:5000",
-                    "http://127.0.0.1:5000"
-                ],
+                "origins": "*",
                 "methods": ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
                 "allow_headers": ["Content-Type", "Authorization"]
             }
@@ -41,7 +36,11 @@ def create_app(config_class=Config):
     from routes.projects import projects_bp
     from routes.sprints import sprints_bp
     from routes.reports import reports_bp
+    from routes.analytics import analytics_bp
     from routes.assistant import assistant_bp
+    from routes.github import github_bp
+    from routes.cicd import cicd_bp
+    from routes.webhooks import webhooks_bp
     
     app.register_blueprint(auth_bp)
     app.register_blueprint(users_bp)
@@ -50,7 +49,11 @@ def create_app(config_class=Config):
     app.register_blueprint(projects_bp)
     app.register_blueprint(sprints_bp)
     app.register_blueprint(reports_bp)
+    app.register_blueprint(analytics_bp)
     app.register_blueprint(assistant_bp)
+    app.register_blueprint(github_bp)
+    app.register_blueprint(cicd_bp)
+    app.register_blueprint(webhooks_bp)
     
     # Health check endpoint
     @app.route("/api/health", methods=["GET"])

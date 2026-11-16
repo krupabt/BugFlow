@@ -171,17 +171,17 @@ export default function Users() {
             <thead>
               <tr>
                 <th>User ID</th>
-                <th>Name</th>
+                <th>Display Name</th>
                 <th>Email</th>
                 <th>Role</th>
-                <th>Status</th>
+                <th>Active</th>
                 <th style={{ textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {users.map((u) => (
                 <tr key={u.id}>
-                  <td style={{ fontWeight: 700, color: '#6754E8' }}>{u.id}</td>
+                  <td style={{ fontWeight: 700, color: '#E97862' }}>{u.id}</td>
                   <td style={{ fontWeight: 600 }}>{u.name}</td>
                   <td>{u.email}</td>
                   <td>

@@ -65,6 +65,7 @@ class Project(db.Model):
             }
             data["total_issues"] = total_issues
             data["open_issues"] = open_issues
+            data["in_progress"] = in_progress
             data["progress"] = progress
         return data
         

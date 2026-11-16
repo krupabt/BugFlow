@@ -24,11 +24,11 @@ export default function Header({ title, onNewIssue }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
         <h1 className="header-title">{title}</h1>
         {backendStatus === 'connected' ? (
-          <span className="badge" style={{ backgroundColor: '#ecfdf5', color: '#047857' }}>
+          <span className="badge" style={{ backgroundColor: '#EDF6F1', color: '#2B6647', border: '1px solid #B7D8C8' }}>
             <Activity size={12} /> API Online
           </span>
         ) : backendStatus === 'disconnected' ? (
-          <span className="badge" style={{ backgroundColor: '#fef2f2', color: '#b91c1c' }}>
+          <span className="badge" style={{ backgroundColor: '#FDF0F0', color: '#D64545', border: '1px solid #F8C8C8' }}>
             <Activity size={12} /> API Offline
           </span>
         ) : null}

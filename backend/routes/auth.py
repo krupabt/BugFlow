@@ -41,12 +41,15 @@ def register():
     if User.query.filter(sa.func.lower(User.email) == raw_email.lower()).first():
         return jsonify({"error": f"An account with email '{raw_email}' already exists."}), 409
         
-    # Generate unique user ID: USR-xxx
-    user_count = User.query.count()
-    new_id = f"USR-{user_count + 1:03d}"
+    # Concurrency-safe sequential User ID: USR-xxx
+    max_num = db.session.query(
+        sa.func.max(sa.cast(sa.func.nullif(sa.func.regexp_replace(User.id, r'[^0-9]', '', 'g'), ''), sa.BigInteger))
+    ).filter(User.id.ilike('USR-%')).scalar() or 0
+    next_num = max_num + 1
+    new_id = f"USR-{next_num:03d}"
     while db.session.get(User, new_id):
-        user_count += 1
-        new_id = f"USR-{user_count + 1:03d}"
+        next_num += 1
+        new_id = f"USR-{next_num:03d}"
 
     user = User(
         id=new_id,

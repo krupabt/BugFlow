@@ -20,6 +20,7 @@ class Issue(db.Model):
     created_date = db.Column(db.Date, nullable=True)
     updated_date = db.Column(db.Date, nullable=True)
     component = db.Column(db.String(100), nullable=True)
+    affected_module = db.Column(db.String(100), nullable=True, default="Other")
     environment = db.Column(db.String(50), nullable=True)
     steps_to_reproduce = db.Column(db.Text, nullable=True)
     expected_result = db.Column(db.Text, nullable=True)
@@ -43,6 +44,7 @@ class Issue(db.Model):
     assignee = db.relationship("User", foreign_keys=[assigned_to])
     comments = db.relationship("IssueComment", backref="issue", lazy="dynamic", cascade="all, delete-orphan", order_by="IssueComment.created_at.asc()")
     status_history = db.relationship("IssueStatusHistory", backref="issue", lazy="dynamic", cascade="all, delete-orphan", order_by="IssueStatusHistory.created_at.asc()")
+    attachments = db.relationship("IssueAttachment", backref="issue", lazy="dynamic", cascade="all, delete-orphan", order_by="IssueAttachment.created_at.desc()")
     
     @property
     def issue_key(self):
@@ -71,9 +73,12 @@ class Issue(db.Model):
             "description": self.description or "",
             "severity": self.severity,
             "priority": self.priority,
+            "priority_level": {"P1": "Urgent", "P2": "High", "P3": "Medium", "P4": "Low", "P0": "Urgent"}.get(self.priority, self.priority),
+            "priority_display": {"P1": "P1 – Urgent", "P2": "P2 – High", "P3": "P3 – Medium", "P4": "P4 – Low", "P0": "P1 – Urgent"}.get(self.priority, self.priority),
             "status": self.status,
             "issue_type": self.issue_type,
             "resolution": self.resolution,
+            "affected_module": self.affected_module or self.component or "Other",
             "component": self.component or "",
             "environment": self.environment or "",
             "steps_to_reproduce": self.steps_to_reproduce or "",
@@ -102,11 +107,13 @@ class Issue(db.Model):
             "resolved_date": r_date,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
-            "comments_count": self.comments.count()
+            "comments_count": self.comments.count(),
+            "attachments_count": self.attachments.count()
         }
         if include_details:
             data["comments"] = [c.to_dict() for c in self.comments]
             data["status_history"] = [h.to_dict() for h in self.status_history]
+            data["attachments"] = [a.to_dict() for a in self.attachments]
         return data
         
     def __repr__(self):

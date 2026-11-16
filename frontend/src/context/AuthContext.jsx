@@ -7,6 +7,7 @@ export function getRoleDashboardPath(role) {
   const norm = (role || '').toUpperCase().replace(/ /g, '_');
   switch (norm) {
     case 'ADMIN':
+    case 'ADMINISTRATOR':
       return '/admin/dashboard';
     case 'PROJECT_MANAGER':
       return '/manager/dashboard';
@@ -16,6 +17,23 @@ export function getRoleDashboardPath(role) {
       return '/tester/dashboard';
     default:
       return '/developer/dashboard';
+  }
+}
+
+export function formatRole(role) {
+  const norm = (role || '').toUpperCase().replace(/ /g, '_');
+  switch (norm) {
+    case 'ADMIN':
+    case 'ADMINISTRATOR':
+      return 'Admin';
+    case 'PROJECT_MANAGER':
+      return 'Project Manager';
+    case 'DEVELOPER':
+      return 'Developer';
+    case 'TESTER':
+      return 'Tester';
+    default:
+      return role || 'Developer';
   }
 }
 
@@ -68,7 +86,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, register, logout, getRoleDashboardPath }}>
+    <AuthContext.Provider value={{ user, token, loading, login, register, logout, getRoleDashboardPath, formatRole }}>
       {children}
     </AuthContext.Provider>
   );

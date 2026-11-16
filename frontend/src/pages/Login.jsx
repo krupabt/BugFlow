@@ -42,7 +42,7 @@ export default function Login() {
     setLoading(true);
 
     try {
-      // Validate credentials through Flask backend & PostgreSQL
+      // Validate credentials through backend authentication system
       const user = await login(cleanEmail, password);
 
       // Handle remember me preference
@@ -54,9 +54,9 @@ export default function Login() {
         localStorage.removeItem('bugflow_saved_email');
       }
 
-      // Automatically identify user role from database and redirect
-      const targetDashboard = getRoleDashboardPath(user?.role);
-      navigate(targetDashboard, { replace: true });
+      // Do NOT redirect directly to dashboard.
+      // Redirect to the Authentication Successful confirmation screen:
+      navigate('/auth/success', { replace: true });
     } catch (err) {
       setError(err.message || 'Invalid email/username or password. Please verify credentials.');
     } finally {
@@ -78,7 +78,7 @@ export default function Login() {
         <div className="auth-hero-center">
           <h1 className="auth-hero-title">Track Smarter. Resolve Faster.</h1>
           <p className="auth-hero-desc">
-            A collaborative issue tracking platform designed to streamline software defect reporting, prioritization, fixing, and quality verification.
+            A collaborative workspace to report, manage and resolve software issues efficiently.
           </p>
 
           {/* Minimal Elegant Visual Feature Points */}
@@ -93,7 +93,7 @@ export default function Login() {
             </div>
             <div className="workflow-step">
               <span className="workflow-step-num">✓</span>
-              <span className="workflow-step-text">Real-time PostgreSQL Auditing & Analytics</span>
+              <span className="workflow-step-text">Real-time Auditing & Analytics</span>
             </div>
           </div>
         </div>
@@ -107,8 +107,15 @@ export default function Login() {
       {/* RIGHT SIDE: SaaS Sign-In Form */}
       <main className="auth-form-panel">
         <div className="auth-card">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
+            <div style={{ width: '38px', height: '38px', background: '#E97862', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FFFFFF', boxShadow: '0 2px 8px rgba(233, 120, 98, 0.3)' }}>
+              <Bug size={20} />
+            </div>
+            <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#393442', letterSpacing: '-0.02em' }}>BugFlow</span>
+          </div>
+
           <h2 className="auth-card-title">Welcome back</h2>
-          <p className="auth-card-subtitle">Sign in to your BugFlow account.</p>
+          <p className="auth-card-subtitle">Sign in to your BugFlow workspace.</p>
 
           {error && (
             <div className="toast-notice toast-error" style={{ marginBottom: '20px', padding: '10px 14px', fontSize: '0.82rem' }}>
@@ -171,12 +178,12 @@ export default function Login() {
 
             {/* Remember me & Forgot Password */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', fontSize: '0.82rem' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: '#24243B' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: '#393442' }}>
                 <input
                   type="checkbox"
                   checked={rememberMe}
                   onChange={(e) => setRememberMe(e.target.checked)}
-                  style={{ accentColor: '#6754E8' }}
+                  style={{ accentColor: '#E97862' }}
                 />
                 <span>Remember me</span>
               </label>
@@ -184,7 +191,7 @@ export default function Login() {
               <button
                 type="button"
                 onClick={() => setShowForgotModal(true)}
-                style={{ background: 'none', border: 'none', color: '#6754E8', fontWeight: 600, cursor: 'pointer', padding: 0, fontSize: '0.82rem' }}
+                style={{ background: 'none', border: 'none', color: '#E97862', fontWeight: 600, cursor: 'pointer', padding: 0, fontSize: '0.82rem' }}
               >
                 Forgot password?
               </button>
@@ -211,11 +218,11 @@ export default function Login() {
             </button>
           </form>
 
-          {/* Create Account Link */}
-          <div style={{ marginTop: '28px', textAlign: 'center', fontSize: '0.84rem', color: '#74748B' }}>
-            Don't have an account?{' '}
-            <Link to="/register" style={{ color: '#6754E8', fontWeight: 600, textDecoration: 'none' }}>
-              Create account
+          {/* Register Link */}
+          <div style={{ marginTop: '28px', textAlign: 'center', fontSize: '0.84rem', color: '#817B86' }}>
+            New to BugFlow?{' '}
+            <Link to="/register" style={{ color: '#E97862', fontWeight: 600, textDecoration: 'none' }}>
+              Create an account
             </Link>
           </div>
         </div>
@@ -231,13 +238,13 @@ export default function Login() {
                 <X size={18} />
               </button>
             </div>
-            <div className="modal-body" style={{ fontSize: '0.85rem', color: '#74748B', lineHeight: 1.6 }}>
+            <div className="modal-body" style={{ fontSize: '0.85rem', color: '#817B86', lineHeight: 1.6 }}>
               <p style={{ marginBottom: '12px' }}>
                 For enterprise security, password resets are centrally managed by workspace administrators.
               </p>
-              <div style={{ padding: '12px', background: '#F8F9FD', border: '1px solid #E9E7F0', borderRadius: '8px', color: '#24243B' }}>
+              <div style={{ padding: '12px', background: '#FAF8F5', border: '1px solid #EAE5E0', borderRadius: '8px', color: '#393442' }}>
                 <div><strong>System Administrator:</strong> Krupa</div>
-                <div style={{ fontSize: '0.8rem', color: '#74748B' }}>Contact: krupa@example.org</div>
+                <div style={{ fontSize: '0.8rem', color: '#817B86' }}>Contact: krupa@example.org</div>
               </div>
             </div>
             <div className="modal-footer" style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end' }}>

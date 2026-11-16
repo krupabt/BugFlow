@@ -40,19 +40,19 @@ export default function Settings() {
           </div>
         </div>
 
-        {/* Database & Environment Info */}
+        {/* System & Data Store Info */}
         <div className="card">
           <h2 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Database size={18} /> Database Integration Status
+            <Database size={18} /> System Integration Status
           </h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '0.88rem' }}>
             <div>
-              <span style={{ color: '#74748B', display: 'block', fontSize: '0.78rem', fontWeight: 600 }}>Database Engine</span>
-              <span>PostgreSQL 17 (localhost:5432)</span>
+              <span style={{ color: '#74748B', display: 'block', fontSize: '0.78rem', fontWeight: 600 }}>System Storage</span>
+              <span>Enterprise Active Data Store (Connected)</span>
             </div>
             <div>
-              <span style={{ color: '#74748B', display: 'block', fontSize: '0.78rem', fontWeight: 600 }}>Database Name</span>
-              <span>bugflow_db</span>
+              <span style={{ color: '#74748B', display: 'block', fontSize: '0.78rem', fontWeight: 600 }}>Workspace Environment</span>
+              <span>Production Enterprise Cluster</span>
             </div>
             <div>
               <span style={{ color: '#74748B', display: 'block', fontSize: '0.78rem', fontWeight: 600 }}>Initial Source Dataset</span>

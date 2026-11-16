@@ -1,41 +1,63 @@
 import React from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
-  Users,
   FolderGit2,
   Bug,
-  BarChart3,
-  Settings,
   Layers,
   CheckSquare,
-  MessageSquare,
-  LogOut
+  BarChart3,
+  Users,
+  Settings,
+  LogOut,
+  GitBranch,
+  Workflow
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export default function Sidebar() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const normRole = (user?.role || '').toUpperCase().replace(/ /g, '_');
-  const isAdmin = normRole === 'ADMIN';
-  const isPM = normRole === 'PROJECT_MANAGER';
-  const isDev = normRole === 'DEVELOPER';
-  const isTester = normRole === 'TESTER';
-  const displayRole = user?.role_display || (isAdmin ? 'Admin' : isPM ? 'Project Manager' : isDev ? 'Developer' : isTester ? 'Tester' : (user?.role || 'Developer'));
-  const dashboardPath = isPM ? '/manager/dashboard' : isDev ? '/developer/dashboard' : isTester ? '/tester/dashboard' : '/admin/dashboard';
+  const location = useLocation();
 
   const handleLogout = () => {
     logout();
     navigate('/login');
   };
 
+  const pathname = location.pathname;
+
+  const isDashboardActive = pathname === '/' || pathname.includes('/dashboard');
+  const isProjectsActive = pathname.startsWith('/projects');
+  const isIssuesActive = pathname.startsWith('/issues') || pathname.startsWith('/my-issues') || pathname.startsWith('/reported-issues');
+  const isSprintsActive = pathname.startsWith('/sprints');
+  const isBacklogActive = pathname.startsWith('/backlog');
+  const isAnalyticsActive = pathname.startsWith('/analytics') || pathname.startsWith('/reports');
+  const isGithubActive = pathname.startsWith('/github');
+  const isCicdActive = pathname.startsWith('/cicd');
+  const isTeamActive = pathname.startsWith('/team') || pathname.startsWith('/users');
+  const isSettingsActive = pathname.startsWith('/settings');
+
+  // Menu items including Milestone 3 additions (GitHub & CI/CD)
+  const navItems = [
+    { name: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard, active: isDashboardActive },
+    { name: 'Projects', path: '/projects', icon: FolderGit2, active: isProjectsActive },
+    { name: 'Issues', path: '/issues', icon: Bug, active: isIssuesActive },
+    { name: 'Sprints', path: '/sprints', icon: Layers, active: isSprintsActive },
+    { name: 'Backlog', path: '/backlog', icon: CheckSquare, active: isBacklogActive },
+    { name: 'Analytics', path: '/analytics', icon: BarChart3, active: isAnalyticsActive },
+    { name: 'GitHub', path: '/github', icon: GitBranch, active: isGithubActive },
+    { name: 'CI/CD', path: '/cicd', icon: Workflow, active: isCicdActive },
+    { name: 'Team', path: '/team', icon: Users, active: isTeamActive },
+    { name: 'Settings', path: '/settings', icon: Settings, active: isSettingsActive }
+  ];
+
   return (
     <aside className="sidebar">
       {/* Brand Header */}
       <div className="sidebar-brand">
         <div className="brand-icon">
-          <Bug size={22} />
+          <Bug size={22} color="#FFFFFF" />
         </div>
         <div>
           <div className="brand-title">BugFlow</div>
@@ -43,175 +65,42 @@ export default function Sidebar() {
         </div>
       </div>
 
-      {/* Role-Specific Navigation */}
+      {/* Navigation */}
       <nav className="sidebar-nav">
-        {/* Common to all */}
-        <NavLink
-          to={dashboardPath}
-          className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
-        >
-          <LayoutDashboard size={18} />
-          <span>Dashboard</span>
-        </NavLink>
-
-        {/* ADMIN NAV */}
-        {isAdmin && (
-          <>
+        {navItems.map((item) => {
+          const IconComp = item.icon;
+          return (
             <NavLink
-              to="/users"
-              className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
+              key={item.name}
+              to={item.path}
+              className={() => (item.active ? 'nav-link active' : 'nav-link')}
             >
-              <Users size={18} />
-              <span>Users</span>
+              <IconComp size={18} />
+              <span>{item.name}</span>
             </NavLink>
-            <NavLink
-              to="/projects"
-              className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
-            >
-              <FolderGit2 size={18} />
-              <span>Projects</span>
-            </NavLink>
-            <NavLink
-              to="/issues"
-              className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
-            >
-              <Bug size={18} />
-              <span>Issues</span>
-            </NavLink>
-            <NavLink
-              to="/reports"
-              className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
-            >
-              <BarChart3 size={18} />
-              <span>Reports</span>
-            </NavLink>
-            <NavLink
-              to="/settings"
-              className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
-            >
-              <Settings size={18} />
-              <span>Settings</span>
-            </NavLink>
-          </>
-        )}
-
-        {/* PROJECT MANAGER NAV */}
-        {isPM && (
-          <>
-            <NavLink
-              to="/projects"
-              className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
-            >
-              <FolderGit2 size={18} />
-              <span>My Projects</span>
-            </NavLink>
-            <NavLink
-              to="/issues"
-              className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
-            >
-              <Bug size={18} />
-              <span>Issues</span>
-            </NavLink>
-            <NavLink
-              to="/sprints"
-              className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
-            >
-              <Layers size={18} />
-              <span>Sprints</span>
-            </NavLink>
-            <NavLink
-              to="/reports"
-              className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
-            >
-              <BarChart3 size={18} />
-              <span>Reports</span>
-            </NavLink>
-          </>
-        )}
-
-        {/* DEVELOPER NAV */}
-        {isDev && (
-          <>
-            <NavLink
-              to="/my-issues"
-              className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
-            >
-              <Bug size={18} />
-              <span>My Issues</span>
-            </NavLink>
-            <NavLink
-              to="/projects"
-              className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
-            >
-              <FolderGit2 size={18} />
-              <span>Projects</span>
-            </NavLink>
-            <NavLink
-              to="/issues"
-              className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
-            >
-              <CheckSquare size={18} />
-              <span>All Issues</span>
-            </NavLink>
-            <NavLink
-              to="/comments"
-              className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
-            >
-              <MessageSquare size={18} />
-              <span>Comments</span>
-            </NavLink>
-          </>
-        )}
-
-        {/* TESTER NAV */}
-        {isTester && (
-          <>
-            <NavLink
-              to="/reported-issues"
-              className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
-            >
-              <Bug size={18} />
-              <span>Reported Issues</span>
-            </NavLink>
-            <NavLink
-              to="/my-tests"
-              className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
-            >
-              <CheckSquare size={18} />
-              <span>My Tests</span>
-            </NavLink>
-            <NavLink
-              to="/issues"
-              className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
-            >
-              <FolderGit2 size={18} />
-              <span>All Issues</span>
-            </NavLink>
-            <NavLink
-              to="/reports"
-              className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
-            >
-              <BarChart3 size={18} />
-              <span>Reports</span>
-            </NavLink>
-          </>
-        )}
+          );
+        })}
       </nav>
 
-      {/* Footer Profile & Logout */}
+      {/* Footer User Profile & Logout */}
       <div className="sidebar-footer">
         <div className="user-profile">
           <div className="user-info">
             <div className="user-avatar">
-              {(user?.name || user?.username || 'U')[0].toUpperCase()}
+              K
             </div>
-            <div style={{ minWidth: 0 }}>
-              <div className="user-name" title={user?.name}>{user?.name || 'User'}</div>
-              <span className="user-role-badge">{displayRole}</span>
+            <div className="user-meta">
+              <div className="user-name">Krupa</div>
+              <span className="user-role-badge">Admin</span>
             </div>
           </div>
-          <button className="btn-icon" onClick={handleLogout} title="Logout">
-            <LogOut size={16} />
+          <button
+            type="button"
+            className="sidebar-logout-btn"
+            onClick={handleLogout}
+            title="Logout"
+          >
+            <LogOut size={17} />
           </button>
         </div>
       </div>

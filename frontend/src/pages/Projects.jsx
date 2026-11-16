@@ -21,7 +21,11 @@ export default function Projects() {
   const navigate = useNavigate();
 
   const normRole = (user?.role || '').toUpperCase().replace(/ /g, '_');
-  const canManageProject = normRole === 'ADMIN' || normRole === 'PROJECT_MANAGER';
+  const isAdmin = normRole === 'ADMIN' || normRole === 'ADMINISTRATOR';
+  const isPM = normRole === 'PROJECT_MANAGER';
+  const isDev = normRole === 'DEVELOPER';
+  const isTester = normRole === 'TESTER';
+  const canManageProject = isAdmin || isPM;
 
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -165,70 +169,197 @@ export default function Projects() {
           <div className="table-container">
             <table className="table">
               <thead>
-                <tr>
-                  <th>Project ID</th>
-                  <th>Project Name</th>
-                  <th>Project Manager</th>
-                  <th>Status</th>
-                  <th>Total Issues</th>
-                  <th>Open</th>
-                  <th>Progress</th>
-                  <th style={{ textAlign: 'right' }}>Actions</th>
-                </tr>
+                {isDev ? (
+                  <tr>
+                    <th>Project ID</th>
+                    <th>Project Name</th>
+                    <th>Project Manager</th>
+                    <th>My Assigned Issues</th>
+                    <th>My Completed Issues</th>
+                    <th style={{ textAlign: 'right' }}>Actions</th>
+                  </tr>
+                ) : isTester ? (
+                  <tr>
+                    <th>Project ID</th>
+                    <th>Project Name</th>
+                    <th>Project Manager</th>
+                    <th>My Reported Issues</th>
+                    <th>My Verification Issues</th>
+                    <th style={{ textAlign: 'right' }}>Actions</th>
+                  </tr>
+                ) : (
+                  <tr>
+                    <th>Project ID</th>
+                    <th>Project Name</th>
+                    <th>Project Manager</th>
+                    <th>Status</th>
+                    <th>Total Issues</th>
+                    <th>Open Issues</th>
+                    <th>Progress</th>
+                    <th style={{ textAlign: 'right' }}>Details</th>
+                  </tr>
+                )}
               </thead>
               <tbody>
-                {projects.map((p) => {
-                  const isSelected = selectedProject?.id === p.id;
-                  return (
-                    <tr
-                      key={p.id}
-                      style={{
-                        backgroundColor: isSelected ? '#F0EDFE' : undefined,
-                        cursor: 'pointer'
-                      }}
-                      onClick={() => handleSelectProject(p)}
+                {projects.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={isDev || isTester ? 6 : 8}
+                      style={{ textAlign: 'center', padding: '48px 16px', color: '#817B86' }}
                     >
-                      <td style={{ fontWeight: 700, color: '#6754E8' }}>{p.id}</td>
-                      <td style={{ fontWeight: 600 }}>{p.name}</td>
-                      <td>{p.project_manager_name || 'Unassigned'}</td>
-                      <td>
-                        <span className={`badge badge-${p.lifecycle_status === 'ACTIVE' ? 'resolved' : 'closed'}`}>
-                          {p.lifecycle_status}
-                        </span>
-                      </td>
-                      <td>{p.total_issues || 0}</td>
-                      <td style={{ color: '#EF4444', fontWeight: 600 }}>{p.open_issues || 0}</td>
-                      <td style={{ minWidth: '120px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <div style={{ flex: 1, height: '6px', background: '#F1F3F9', borderRadius: '3px', overflow: 'hidden' }}>
-                            <div style={{ height: '100%', width: `${p.progress || 0}%`, background: '#6754E8' }} />
-                          </div>
-                          <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#74748B' }}>{p.progress || 0}%</span>
-                        </div>
-                      </td>
-                      <td style={{ textAlign: 'right' }} onClick={(e) => e.stopPropagation()}>
-                        <div style={{ display: 'inline-flex', gap: '6px' }}>
-                          <button
-                            className="btn btn-secondary"
-                            style={{ padding: '4px 10px', fontSize: '0.75rem' }}
-                            onClick={() => handleSelectProject(p)}
-                          >
-                            Details
-                          </button>
-                          {canManageProject && (
-                            <button
-                              className="btn-icon"
-                              title="Edit Project"
-                              onClick={() => setEditModalProject({ ...p })}
+                      <FolderGit2 size={36} style={{ color: '#D6A85E', marginBottom: '8px', opacity: 0.8 }} />
+                      <div style={{ fontWeight: 600, fontSize: '0.95rem', color: '#393442' }}>
+                        No accessible projects found
+                      </div>
+                      <div style={{ fontSize: '0.82rem', marginTop: '4px' }}>
+                        {isDev
+                          ? 'You currently have no issues assigned in any projects.'
+                          : isTester
+                          ? 'You currently have no reported or verification issues in any projects.'
+                          : isPM
+                          ? 'You are not assigned as manager for any projects yet.'
+                          : 'No projects found in the system.'}
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  projects.map((p) => {
+                    const isSelected = selectedProject?.id === p.id;
+                    if (isDev) {
+                      return (
+                        <tr
+                          key={p.id}
+                          style={{
+                            backgroundColor: isSelected ? '#FDF2F0' : undefined,
+                            cursor: 'pointer'
+                          }}
+                          onClick={() => handleSelectProject(p)}
+                        >
+                          <td style={{ fontWeight: 700, color: '#E97862' }}>{p.id}</td>
+                          <td style={{ fontWeight: 600 }}>{p.name}</td>
+                          <td>{p.project_manager_name || 'Unassigned'}</td>
+                          <td>
+                            <span
+                              className="badge badge-open"
+                              style={{ minWidth: '32px', textAlign: 'center', fontWeight: 700 }}
                             >
-                              <Edit size={14} />
+                              {p.my_assigned_issues ?? 0}
+                            </span>
+                          </td>
+                          <td>
+                            <span
+                              className="badge badge-resolved"
+                              style={{ minWidth: '32px', textAlign: 'center', fontWeight: 700 }}
+                            >
+                              {p.my_completed_issues ?? 0}
+                            </span>
+                          </td>
+                          <td style={{ textAlign: 'right' }} onClick={(e) => e.stopPropagation()}>
+                            <button
+                              className="btn btn-secondary"
+                              style={{ padding: '4px 12px', fontSize: '0.78rem' }}
+                              onClick={() => handleSelectProject(p)}
+                            >
+                              Details
                             </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
+                          </td>
+                        </tr>
+                      );
+                    }
+
+                    if (isTester) {
+                      return (
+                        <tr
+                          key={p.id}
+                          style={{
+                            backgroundColor: isSelected ? '#FDF2F0' : undefined,
+                            cursor: 'pointer'
+                          }}
+                          onClick={() => handleSelectProject(p)}
+                        >
+                          <td style={{ fontWeight: 700, color: '#E97862' }}>{p.id}</td>
+                          <td style={{ fontWeight: 600 }}>{p.name}</td>
+                          <td>{p.project_manager_name || 'Unassigned'}</td>
+                          <td>
+                            <span
+                              className="badge badge-open"
+                              style={{ minWidth: '32px', textAlign: 'center', fontWeight: 700 }}
+                            >
+                              {p.my_reported_issues ?? 0}
+                            </span>
+                          </td>
+                          <td>
+                            <span
+                              className="badge badge-testing"
+                              style={{ minWidth: '32px', textAlign: 'center', fontWeight: 700 }}
+                            >
+                              {p.my_verification_issues ?? 0}
+                            </span>
+                          </td>
+                          <td style={{ textAlign: 'right' }} onClick={(e) => e.stopPropagation()}>
+                            <button
+                              className="btn btn-secondary"
+                              style={{ padding: '4px 12px', fontSize: '0.78rem' }}
+                              onClick={() => handleSelectProject(p)}
+                            >
+                              Details
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    }
+
+                    return (
+                      <tr
+                        key={p.id}
+                        style={{
+                          backgroundColor: isSelected ? '#FDF2F0' : undefined,
+                          cursor: 'pointer'
+                        }}
+                        onClick={() => handleSelectProject(p)}
+                      >
+                        <td style={{ fontWeight: 700, color: '#E97862' }}>{p.id}</td>
+                        <td style={{ fontWeight: 600 }}>{p.name}</td>
+                        <td>{p.project_manager_name || 'Unassigned'}</td>
+                        <td>
+                          <span className={`badge badge-${p.lifecycle_status === 'ACTIVE' ? 'resolved' : 'closed'}`}>
+                            {p.lifecycle_status}
+                          </span>
+                        </td>
+                        <td>{p.total_issues || 0}</td>
+                        <td style={{ color: '#D64545', fontWeight: 600 }}>{p.open_issues || 0}</td>
+                        <td style={{ minWidth: '120px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <div style={{ flex: 1, height: '6px', background: '#F5F1EC', borderRadius: '3px', overflow: 'hidden' }}>
+                              <div style={{ height: '100%', width: `${p.progress || 0}%`, background: '#E97862' }} />
+                            </div>
+                            <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#817B86' }}>{p.progress || 0}%</span>
+                          </div>
+                        </td>
+                        <td style={{ textAlign: 'right' }} onClick={(e) => e.stopPropagation()}>
+                          <div style={{ display: 'inline-flex', gap: '6px' }}>
+                            <button
+                              className="btn btn-secondary"
+                              style={{ padding: '4px 10px', fontSize: '0.75rem' }}
+                              onClick={() => handleSelectProject(p)}
+                            >
+                              Details
+                            </button>
+                            {canManageProject && (
+                              <button
+                                className="btn-icon"
+                                title="Edit Project"
+                                onClick={() => setEditModalProject({ ...p })}
+                              >
+                                <Edit size={14} />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
               </tbody>
             </table>
           </div>
@@ -238,7 +369,7 @@ export default function Projects() {
             <div className="card" style={{ position: 'sticky', top: '24px', height: 'fit-content' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                 <div>
-                  <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#6754E8' }}>{selectedProject.id}</span>
+                  <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#E97862' }}>{selectedProject.id}</span>
                   <h2 style={{ fontSize: '1.15rem', fontWeight: 700 }}>{selectedProject.name}</h2>
                 </div>
                 <button className="btn-icon" onClick={() => setSelectedProject(null)}>
@@ -246,20 +377,60 @@ export default function Projects() {
                 </button>
               </div>
 
-              <p style={{ fontSize: '0.875rem', color: '#74748B', marginBottom: '16px' }}>
+              <p style={{ fontSize: '0.875rem', color: '#817B86', marginBottom: '16px' }}>
                 {selectedProject.description || 'No description provided.'}
               </p>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', padding: '12px', background: '#F8F9FD', borderRadius: '8px', marginBottom: '16px', fontSize: '0.82rem' }}>
-                <div>
-                  <span style={{ color: '#74748B', display: 'block' }}>Project Manager:</span>
-                  <strong>{selectedProject.project_manager_name || 'Unassigned'}</strong>
+              {isDev ? (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', padding: '12px', background: '#FAF8F5', border: '1px solid #EAE5E0', borderRadius: '8px', marginBottom: '16px', fontSize: '0.82rem' }}>
+                  <div>
+                    <span style={{ color: '#817B86', display: 'block' }}>Project Manager:</span>
+                    <strong>{selectedProject.project_manager_name || 'Unassigned'}</strong>
+                  </div>
+                  <div>
+                    <span style={{ color: '#817B86', display: 'block' }}>Status:</span>
+                    <strong>{selectedProject.lifecycle_status}</strong>
+                  </div>
+                  <div>
+                    <span style={{ color: '#817B86', display: 'block' }}>My Assigned Issues:</span>
+                    <strong style={{ color: '#E97862' }}>{projectDetails?.my_assigned_issues ?? selectedProject.my_assigned_issues ?? 0}</strong>
+                  </div>
+                  <div>
+                    <span style={{ color: '#817B86', display: 'block' }}>My Completed Issues:</span>
+                    <strong style={{ color: '#16A34A' }}>{projectDetails?.my_completed_issues ?? selectedProject.my_completed_issues ?? 0}</strong>
+                  </div>
                 </div>
-                <div>
-                  <span style={{ color: '#74748B', display: 'block' }}>Status:</span>
-                  <strong>{selectedProject.lifecycle_status}</strong>
+              ) : isTester ? (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', padding: '12px', background: '#FAF8F5', border: '1px solid #EAE5E0', borderRadius: '8px', marginBottom: '16px', fontSize: '0.82rem' }}>
+                  <div>
+                    <span style={{ color: '#817B86', display: 'block' }}>Project Manager:</span>
+                    <strong>{selectedProject.project_manager_name || 'Unassigned'}</strong>
+                  </div>
+                  <div>
+                    <span style={{ color: '#817B86', display: 'block' }}>Status:</span>
+                    <strong>{selectedProject.lifecycle_status}</strong>
+                  </div>
+                  <div>
+                    <span style={{ color: '#817B86', display: 'block' }}>My Reported Issues:</span>
+                    <strong style={{ color: '#E97862' }}>{projectDetails?.my_reported_issues ?? selectedProject.my_reported_issues ?? 0}</strong>
+                  </div>
+                  <div>
+                    <span style={{ color: '#817B86', display: 'block' }}>My Verification Issues:</span>
+                    <strong style={{ color: '#7A7098' }}>{projectDetails?.my_verification_issues ?? selectedProject.my_verification_issues ?? 0}</strong>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', padding: '12px', background: '#FAF8F5', border: '1px solid #EAE5E0', borderRadius: '8px', marginBottom: '16px', fontSize: '0.82rem' }}>
+                  <div>
+                    <span style={{ color: '#817B86', display: 'block' }}>Project Manager:</span>
+                    <strong>{selectedProject.project_manager_name || 'Unassigned'}</strong>
+                  </div>
+                  <div>
+                    <span style={{ color: '#817B86', display: 'block' }}>Status:</span>
+                    <strong>{selectedProject.lifecycle_status}</strong>
+                  </div>
+                </div>
+              )}
 
               {/* Associated Sprints */}
               <div style={{ marginBottom: '16px' }}>
@@ -268,7 +439,7 @@ export default function Projects() {
                     <Layers size={15} /> Associated Sprints
                   </h3>
                   <button
-                    style={{ fontSize: '0.75rem', color: '#6754E8', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}
+                    style={{ fontSize: '0.75rem', color: '#E97862', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}
                     onClick={() => navigate(`/sprints?project_id=${selectedProject.id}`)}
                   >
                     View in Sprints →
@@ -276,10 +447,10 @@ export default function Projects() {
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '140px', overflowY: 'auto' }}>
                   {(projectDetails?.sprints || []).length === 0 ? (
-                    <span style={{ fontSize: '0.8rem', color: '#74748B' }}>No sprints recorded.</span>
+                    <span style={{ fontSize: '0.8rem', color: '#817B86' }}>No sprints recorded.</span>
                   ) : (
                     projectDetails.sprints.slice(0, 5).map(s => (
-                      <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 8px', background: '#F1F3F9', borderRadius: '4px', fontSize: '0.78rem' }}>
+                      <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 8px', background: '#FAF8F5', border: '1px solid #EAE5E0', borderRadius: '4px', fontSize: '0.78rem' }}>
                         <span>{s.sprint_name}</span>
                         <span className={`badge badge-${s.status === 'COMPLETED' ? 'resolved' : 'open'}`}>{s.status}</span>
                       </div>
@@ -295,7 +466,13 @@ export default function Projects() {
                 onClick={() => navigate(`/issues?project_id=${selectedProject.id}`)}
               >
                 <Bug size={16} />
-                <span>View All {selectedProject.total_issues || 0} Issues for {selectedProject.id}</span>
+                <span>
+                  {isDev
+                    ? `View My Assigned Issues for ${selectedProject.id} (${projectDetails?.my_assigned_issues ?? selectedProject.my_assigned_issues ?? 0})`
+                    : isTester
+                    ? `View My Reported & Testing Issues for ${selectedProject.id} (${(projectDetails?.my_reported_issues ?? selectedProject.my_reported_issues ?? 0) + (projectDetails?.my_verification_issues ?? selectedProject.my_verification_issues ?? 0)})`
+                    : `View All ${selectedProject.total_issues || 0} Issues for ${selectedProject.id}`}
+                </span>
               </button>
             </div>
           )}

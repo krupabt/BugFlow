@@ -46,6 +46,12 @@ def ensure_dataset_imported():
     conn = db.engine.connect()
     trans = conn.begin()
     try:
+        # Purge obsolete demo/sample entities with non-standard IDs
+        conn.execute(text("DELETE FROM issues WHERE project_id IN ('1', '2') OR id NOT LIKE 'BUG-%'"))
+        conn.execute(text("DELETE FROM projects WHERE id IN ('1', '2') OR id NOT LIKE 'PRJ-%'"))
+        conn.execute(text("DELETE FROM users WHERE id NOT LIKE 'USR-%'"))
+        conn.execute(text("DELETE FROM workflow_states WHERE id NOT LIKE 'ST-%'"))
+
         # 1. Always synchronize users from users.csv to keep credentials & roles up to date
         u_path = os.path.join(db_folder, 'users.csv')
         if os.path.exists(u_path):
