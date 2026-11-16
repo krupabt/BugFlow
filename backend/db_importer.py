@@ -37,10 +37,28 @@ def clean_date(val):
 
 def ensure_dataset_imported():
     """Idempotently synchronizes users, workflow states, projects, sprints and issues into PostgreSQL."""
-    base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
-    db_folder = os.path.join(base_dir, 'database')
-    if not os.path.exists(db_folder):
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    candidates = [
+        os.path.abspath(os.path.join(current_dir, '..', 'database')),
+        os.path.abspath(os.path.join(current_dir, 'database')),
+        os.path.abspath(os.path.join(os.getcwd(), 'database')),
+        os.path.abspath(os.path.join(current_dir, '..', '..', 'database'))
+    ]
+    db_folder = None
+    for candidate in candidates:
+        if os.path.exists(candidate) and os.path.isdir(candidate):
+            db_folder = candidate
+            break
+
+    if not db_folder:
+        print(f'[WARN] Database folder not found. Searched candidates: {candidates}')
         return
+
+    try:
+        import models
+        db.create_all()
+    except Exception as e:
+        print(f'[INFO] Table creation notice: {e}')
 
     hashed_pwd = generate_password_hash(DEFAULT_DEMO_PASSWORD)
     conn = db.engine.connect()

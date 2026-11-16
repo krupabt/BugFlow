@@ -10,6 +10,8 @@ if backend_dir not in sys.path:
 
 from app import create_app
 from extensions import db
+import models
+from db_importer import ensure_dataset_imported
 
 @pytest.fixture(scope="session")
 def app():
@@ -20,7 +22,6 @@ def app():
             db.create_all()
             from models.user import User
             if not User.query.filter_by(email="krupa@example.org").first():
-                from db_importer import ensure_dataset_imported
                 ensure_dataset_imported()
         except Exception as e:
             print(f"Warning during test DB setup: {e}")

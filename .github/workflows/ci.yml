@@ -46,6 +46,19 @@ jobs:
           pip install -r backend/requirements.txt
           pip install pytest pytest-cov
 
+      - name: Seed Test Database
+        env:
+          DB_USER: postgres
+          DB_PASSWORD: postgres_ci_password
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_NAME: bugflow_test_db
+          DATABASE_URL: postgresql+psycopg2://postgres:postgres_ci_password@localhost:5432/bugflow_test_db
+          SECRET_KEY: ci-test-secret-key-32-chars-minimum!
+          JWT_SECRET_KEY: ci-jwt-secret-key-32-chars-minimum!
+        run: |
+          python scripts/seed_demo_user.py
+
       - name: Run Backend Pytest Suite
         env:
           DB_USER: postgres
