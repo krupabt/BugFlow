@@ -38,7 +38,7 @@ export default function Sidebar() {
   const isTeamActive = pathname.startsWith('/team') || pathname.startsWith('/users');
   const isSettingsActive = pathname.startsWith('/settings');
 
-  // Menu items including Milestone 3 additions (GitHub & CI/CD)
+  // Menu items (GitHub & CI/CD)
   const navItems = [
     { name: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard, active: isDashboardActive },
     { name: 'Projects', path: '/projects', icon: FolderGit2, active: isProjectsActive },

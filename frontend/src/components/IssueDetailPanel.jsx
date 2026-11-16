@@ -817,7 +817,7 @@ export default function IssueDetailPanel({ issueId, isOpen, onClose, onIssueUpda
               )}
 
               {/* ============================================================= */}
-              {/* TAB: GITHUB ACTIVITY (Milestone 3)                            */}
+              {/* TAB: GITHUB ACTIVITY                            */}
               {/* ============================================================= */}
               {activeTab === 'github' && (
                 <div style={{ paddingTop: '4px' }}>

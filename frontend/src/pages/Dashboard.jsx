@@ -287,7 +287,7 @@ export default function Dashboard() {
   // Notifications popup toggle
   const [showNotifications, setShowNotifications] = useState(false);
 
-  // Milestone 3: GitHub & CI/CD Status
+  // GitHub & CI/CD Status
   const [githubInfo, setGithubInfo] = useState(null);
   const [cicdInfo, setCicdInfo] = useState(null);
 
@@ -425,7 +425,7 @@ export default function Dashboard() {
     }
   };
 
-  // Load Milestone 3 DevOps Stats (GitHub & CI/CD)
+  // Load DevOps Stats (GitHub & CI/CD)
   const loadDevOpsStats = async () => {
     try {
       const [gh, ci] = await Promise.all([
@@ -1641,87 +1641,9 @@ export default function Dashboard() {
           </div>
 
           {/* ==================================================== */}
-          {/* MILESTONE 3 – DEVOPS & CONTINUOUS INTEGRATION        */}
+          {/* DEVOPS & CONTINUOUS INTEGRATION        */}
           {/* ==================================================== */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '4px' }}>
-            {/* Milestone 3 Completion Summary Banner */}
-            <div
-              style={{
-                background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)',
-                borderRadius: '12px',
-                padding: '20px 24px',
-                color: '#FFFFFF',
-                boxShadow: '0 4px 12px rgba(15,23,42,0.12)',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                flexWrap: 'wrap',
-                gap: '16px'
-              }}
-            >
-              <div style={{ flex: 1, minWidth: '280px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-                  <span
-                    style={{
-                      background: 'linear-gradient(135deg, #F97316 0%, #EA580C 100%)',
-                      color: '#FFFFFF',
-                      fontSize: '0.72rem',
-                      fontWeight: 800,
-                      padding: '3px 8px',
-                      borderRadius: '4px',
-                      letterSpacing: '0.04em'
-                    }}
-                  >
-                    MILESTONE 3
-                  </span>
-                  <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#38BDF8' }}>
-                    Final System Integration Complete
-                  </span>
-                </div>
-                <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: '#FFFFFF', letterSpacing: '-0.01em' }}>
-                  GitHub & CI/CD Pipeline Architecture
-                </h3>
-                <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: '#94A3B8' }}>
-                  Full end-to-end integration between PostgreSQL defect tracking, Git version control, and automated CI/CD validation.
-                </p>
-
-                {/* Progress bar */}
-                <div style={{ marginTop: '12px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <div style={{ flex: 1, maxWidth: '280px', height: '6px', background: 'rgba(255,255,255,0.15)', borderRadius: '9999px', overflow: 'hidden' }}>
-                    <div style={{ width: '100%', height: '100%', background: 'linear-gradient(90deg, #10B981, #38BDF8)' }} />
-                  </div>
-                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#10B981' }}>100% Complete</span>
-                </div>
-              </div>
-
-              {/* Badges */}
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center' }}>
-                <div style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', padding: '6px 12px', borderRadius: '8px', fontSize: '0.76rem', color: '#F1F5F9' }}>
-                  <div style={{ fontSize: '0.68rem', color: '#94A3B8', fontWeight: 700, textTransform: 'uppercase' }}>VCS Link</div>
-                  <div style={{ fontWeight: 700, color: '#38BDF8', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
-                    <GitBranch size={13} />
-                    <span>krupabt/BugFlow</span>
-                  </div>
-                </div>
-
-                <div style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', padding: '6px 12px', borderRadius: '8px', fontSize: '0.76rem', color: '#F1F5F9' }}>
-                  <div style={{ fontSize: '0.68rem', color: '#94A3B8', fontWeight: 700, textTransform: 'uppercase' }}>CI/CD Workflow</div>
-                  <div style={{ fontWeight: 700, color: '#10B981', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
-                    <Workflow size={13} />
-                    <span>{cicdInfo?.run_id || '#1042'} Passing</span>
-                  </div>
-                </div>
-
-                <div style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', padding: '6px 12px', borderRadius: '8px', fontSize: '0.76rem', color: '#F1F5F9' }}>
-                  <div style={{ fontSize: '0.68rem', color: '#94A3B8', fontWeight: 700, textTransform: 'uppercase' }}>Test Suites</div>
-                  <div style={{ fontWeight: 700, color: '#A78BFA', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
-                    <Shield size={13} />
-                    <span>5/5 Passing (100%)</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
             {/* GitHub & CI/CD Status Cards (Side by Side) */}
             <div
               style={{

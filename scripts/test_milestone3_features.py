@@ -166,8 +166,7 @@ def test_milestone3():
             dash_content = f.read()
         assert "GitHub Integration Status" in dash_content
         assert "CI/CD Pipeline Status" in dash_content
-        assert "MILESTONE 3" in dash_content
-        print("  [PASS] Dashboard.jsx includes Milestone 3 completion banner, GitHub Integration card, and CI/CD Pipeline card.")
+        print("  [PASS] Dashboard.jsx includes GitHub Integration card, and CI/CD Pipeline card.")
 
         # 10. GitHub Actions Workflow Configuration
         workflow_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".github", "workflows", "ci.yml")

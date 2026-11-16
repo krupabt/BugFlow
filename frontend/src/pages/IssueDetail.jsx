@@ -764,7 +764,7 @@ export default function IssueDetail() {
                 </div>
               )}
 
-              {/* ----------------- TAB: GITHUB ACTIVITY (Milestone 3) ----------------- */}
+              {/* ----------------- TAB: GITHUB ACTIVITY ----------------- */}
               {activeTab === 'github' && (
                 <GitHubActivitySection
                   issueId={issue.id}
