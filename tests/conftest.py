@@ -15,6 +15,15 @@ from extensions import db
 def app():
     app = create_app()
     app.config["TESTING"] = True
+    with app.app_context():
+        try:
+            db.create_all()
+            from models.user import User
+            if not User.query.filter_by(email="krupa@example.org").first():
+                from db_importer import ensure_dataset_imported
+                ensure_dataset_imported()
+        except Exception as e:
+            print(f"Warning during test DB setup: {e}")
     yield app
 
 @pytest.fixture(scope="session")

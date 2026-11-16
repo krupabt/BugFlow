@@ -1,0 +1,92 @@
+name: BugFlow Continuous Integration & Testing
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  backend-test:
+    name: Backend Test Suite (Pytest & PostgreSQL)
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres_ci_password
+          POSTGRES_DB: bugflow_test_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+          cache-dependency-path: 'backend/requirements.txt'
+
+      - name: Install Python Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+          pip install pytest pytest-cov
+
+      - name: Run Backend Pytest Suite
+        env:
+          DB_USER: postgres
+          DB_PASSWORD: postgres_ci_password
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_NAME: bugflow_test_db
+          DATABASE_URL: postgresql+psycopg2://postgres:postgres_ci_password@localhost:5432/bugflow_test_db
+          SECRET_KEY: ci-test-secret-key-32-chars-minimum!
+          JWT_SECRET_KEY: ci-jwt-secret-key-32-chars-minimum!
+        run: |
+          mkdir -p test-results
+          pytest tests/ -v --junitxml=test-results/junit.xml
+
+      - name: Upload Test Results Artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pytest-results
+          path: test-results/junit.xml
+          retention-days: 14
+
+  frontend-build:
+    name: Frontend Build & Verification
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install Frontend Dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build React Application
+        working-directory: frontend
+        run: npm run build
