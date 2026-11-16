@@ -72,6 +72,13 @@ def list_commits():
     return jsonify(result), 200
 
 
+@github_bp.route("/branches", methods=["GET"])
+def list_branches():
+    """List real repository branches from GitHub API."""
+    result = GitHubService.get_branches()
+    return jsonify(result), 200
+
+
 @github_bp.route("/commits/<commit_sha>", methods=["GET"])
 def get_commit_details(commit_sha):
     """Get real commit details and unified diff/patch from GitHub API."""

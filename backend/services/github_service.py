@@ -321,6 +321,35 @@ class GitHubService:
             return {"connected": False, "commits": [], "error": f"Failed to connect to GitHub: {str(e)}"}
 
     @classmethod
+    def get_branches(cls):
+        """Retrieve real repository branches from GitHub API."""
+        creds = cls.get_credentials()
+        token = creds.get("token")
+        owner = creds.get("owner", "krupabt")
+        repo = creds.get("repo", "BugFlow")
+
+        if not token:
+            return {"connected": False, "branches": [{"name": "main"}], "error": "GitHub is not connected."}
+
+        url = f"{GITHUB_API_BASE}/repos/{owner}/{repo}/branches"
+        try:
+            res = requests.get(url, headers=cls.get_headers(), timeout=12)
+            if res.status_code != 200:
+                return {"connected": False, "branches": [{"name": "main"}], "error": f"Failed to fetch branches (HTTP {res.status_code})"}
+            branches_data = res.json()
+            formatted = []
+            for b in branches_data:
+                formatted.append({
+                    "name": b.get("name"),
+                    "commit_sha": b.get("commit", {}).get("sha"),
+                    "short_sha": (b.get("commit", {}).get("sha") or "")[:7],
+                    "protected": b.get("protected", False)
+                })
+            return {"connected": True, "branches": formatted, "count": len(formatted)}
+        except requests.RequestException as e:
+            return {"connected": False, "branches": [{"name": "main"}], "error": str(e)}
+
+    @classmethod
     def get_commit_details(cls, commit_sha: str):
         """Retrieve real commit details and unified diff from GitHub API."""
         creds = cls.get_credentials()

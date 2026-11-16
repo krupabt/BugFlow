@@ -341,6 +341,7 @@ export const api = {
     const qs = query.toString();
     return request(`/github/commits${qs ? `?${qs}` : ''}`);
   },
+  getGithubBranches: () => request('/github/branches'),
   getIssueGithubActivity: (issueId) => request(`/github/issues/${issueId}/activity`),
   getCommitDetails: (commitId) => request(`/github/commits/${commitId}`),
   linkCommitToIssue: (issueId, commitSha) =>
